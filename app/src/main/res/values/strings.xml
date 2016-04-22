@@ -1,0 +1,38 @@
+<resources>
+    <string name="app_name">ReactAdroid</string>
+    <string name="button_react_string">\?</string>
+
+    <string name="title_activity_login">Sign In</string>
+    <string name="title_activity_register">Sign Up</string>
+    <!-- Strings related to login -->
+    <string name="prompt_email">メールアドレス</string>
+    <string name="prompt_password">パスワード</string>
+    <string name="prompt_name">名前</string>
+    <string name="action_sign_in">ログイン</string>
+    <string name="action_sign_in_short">ログイン</string>
+    <string name="error_invalid_email">正しいメールアドレスを入力してください</string>
+    <string name="error_invalid_password">パスワードを6桁以上にしてください</string>
+    <string name="error_incorrect_password">パスワードが正しくない</string>
+    <string name="error_field_required">情報を入力してください</string>
+    <string name="permission_rationale">"Contacts permissions are needed for providing email
+        completions."
+    </string>
+    <string name="button_OK_string">OK</string>
+    <string name="button_register_string">新規登録</string>
+    <string name="button_return_string">戻る</string>
+    <string name="edit_text_key_input_string">ルームキーを入力してください</string>
+
+    <string name="title_activity_welcome">WelcomeActivity</string>
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
+    <string name="push_button_string">わからない場合押してください</string>
+    <string name="room_key">ROOM_KEY</string>
+    <string name="pref_name">REACT_SAVE_DATA</string>
+    <string name="pref_key_username">UserName</string>
+    <string name="pref_key_email">EMail</string>
+    <string name="pref_key_password">Password</string>
+    <string name="pref_key_api_token">Apitoken</string>
+    <string name="forget_password">パスワードを忘れた</string>
+    <string name="domain">http://optimind-react.com</string>
+
+</resources>

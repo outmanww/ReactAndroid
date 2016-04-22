@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    tools:context="com.optimind_react.reactadroid.RoomEnterActivity">
+
+    <Button
+        style="?android:textAppearanceSmall"
+        android:id="@+id/roomKeyButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/button_OK_string"
+        android:onClick="roomKeyButtonClick"
+        android:textStyle="bold"
+        android:layout_centerVertical="true"
+        android:layout_centerHorizontal="true"
+        android:background="@color/colorReact" />
+    <EditText
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/roomKeyText"
+        android:layout_above="@+id/roomKeyButton"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="20dp"
+        android:inputType="numberDecimal"
+        android:width="350dp"
+        android:hint="@string/edit_text_key_input_string"
+        android:textAlignment="center" />
+</RelativeLayout>
