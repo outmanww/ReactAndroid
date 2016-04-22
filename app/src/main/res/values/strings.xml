@@ -7,16 +7,21 @@
     <!-- Strings related to login -->
     <string name="prompt_email">メールアドレス</string>
     <string name="prompt_password">パスワード</string>
-    <string name="prompt_name">名前</string>
+    <string name="prompt_password_2">パスワード再入力</string>
+    <string name="prompt_family_name">姓名</string>
+    <string name="prompt_given_name">名前</string>
     <string name="action_sign_in">ログイン</string>
     <string name="action_sign_in_short">ログイン</string>
+    <string name="action_sign_up_short">登録</string>
     <string name="error_invalid_email">正しいメールアドレスを入力してください</string>
     <string name="error_invalid_password">パスワードを6桁以上にしてください</string>
     <string name="error_incorrect_password">パスワードが正しくない</string>
+    <string name="error_different_password">パスワードが一致しない</string>
     <string name="error_field_required">情報を入力してください</string>
-    <string name="permission_rationale">"Contacts permissions are needed for providing email
-        completions."
-    </string>
+    <string name="error_reset_password">"パスワードのリセットができませんでした"</string>
+
+    <string name="permission_rationale">"Email情報を取得するために連絡帳への承認が必要"</string>
+    <string name="dialog_password_reset">"パスワードリセットメールをお送り致しました．メールを確認してください"</string>
     <string name="button_OK_string">OK</string>
     <string name="button_register_string">新規登録</string>
     <string name="button_return_string">戻る</string>
@@ -32,7 +37,7 @@
     <string name="pref_key_email">EMail</string>
     <string name="pref_key_password">Password</string>
     <string name="pref_key_api_token">Apitoken</string>
-    <string name="forget_password">パスワードを忘れた</string>
+    <string name="forget_password">パスワードを忘れたら</string>
     <string name="domain">http://optimind-react.com</string>
 
 </resources>

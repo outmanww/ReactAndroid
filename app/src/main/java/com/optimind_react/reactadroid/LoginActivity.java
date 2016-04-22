@@ -20,6 +20,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -31,6 +32,17 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,14 +57,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
      * Id to identity READ_CONTACTS permission request.
      */
     private static final int REQUEST_READ_CONTACTS = 0;
-
-    /**
-     * A dummy authentication store containing known user names and passwords.
-     * TODO: remove after connecting to a real authentication system.
-     */
-    private static final String[] DUMMY_CREDENTIALS = new String[]{
-            "foo@example.com:hello", "bar@example.com:world"
-    };
     /**
      * Keep track of the login task to ensure we can cancel it if requested.
      */
@@ -93,8 +97,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             }
         });
 
-        Button mRegisterButton = (Button) findViewById(R.id.register_button);
-        mRegisterButton.setOnClickListener(new OnClickListener() {
+        TextView mRegisterText = (TextView) findViewById(R.id.register_text);
+        mRegisterText.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent(selfClass, RegisterActivity.class);
@@ -109,9 +113,9 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             public void onClick(View view) {
                 boolean rst = attemptResetPwd();
                 if(rst)
-                    Toast.makeText(selfClass, "パスワードリセットメールをお送り致しました．メールを確認してください．", Toast.LENGTH_LONG).show();
+                    Toast.makeText(selfClass, R.string.dialog_password_reset, Toast.LENGTH_LONG).show();
                 else
-                    Toast.makeText(selfClass, "パスワードのリセットができませんでした．", Toast.LENGTH_LONG).show();
+                    Toast.makeText(selfClass, R.string.error_reset_password, Toast.LENGTH_LONG).show();
             }
         });
 
@@ -210,7 +214,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
             showProgress(true);
-            mAuthTask = new UserLoginTask(email, password);
+            final String url = getString(R.string.domain)+"/student/signin";
+            mAuthTask = new UserLoginTask(email, password, url, "POST");
             mAuthTask.execute((Void) null);
         }
     }
@@ -221,13 +226,11 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     }
 
     private boolean isEmailValid(String email) {
-        //TODO: Replace this with your own logic
-        return email.contains("@");
+        return (email.contains("@") && email.contains("."));
     }
 
     private boolean isPasswordValid(String password) {
-        //TODO: Replace this with your own logic
-        return password.length() > 6;
+        return password.length() >= 6;
     }
 
     /**
@@ -324,45 +327,91 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
      * Represents an asynchronous login/registration task used to authenticate
      * the user.
      */
-    public class UserLoginTask extends AsyncTask<Void, Void, Boolean> {
+    public class UserLoginTask extends AsyncTask<Void, Void, Integer> {
 
         private final String mEmail;
         private final String mPassword;
+        private final String mUrl;
+        private final String mMethod;
+        private final static String EOL = "\r\n";
 
-        UserLoginTask(String email, String password) {
+        UserLoginTask(String email, String password, String url, String method) {
             mEmail = email;
             mPassword = password;
+            mUrl = url;
+            mMethod = method;
         }
 
         @Override
-        protected Boolean doInBackground(Void... params) {
-            // TODO: attempt authentication against a network service.
+        protected Integer doInBackground(Void... params) {
+            // httpのコネクションを管理するクラス
+            HttpURLConnection con = null;
+            URL url = null;
+            int status = 0;
+            JSONObject jsonObj = new JSONObject();
+            // InputStreamからbyteデータを取得するための変数
+            BufferedReader bufStr = null;
 
             try {
-                // Simulate network access.
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                return false;
-            }
+                jsonObj.put("email", mEmail);
+                jsonObj.put("password", mPassword);
+                // URLの作成
+                url = new URL(mUrl);
+                // 接続用HttpURLConnectionオブジェクト作成
+                con = (HttpURLConnection)url.openConnection();
+                // リクエストメソッドの設定
+                con.setRequestMethod(mMethod);
+                // リダイレクトを自動で許可しない設定
+                con.setInstanceFollowRedirects(false);
+                con.setRequestProperty("Accept-Language", "jp");
+                con.setRequestProperty("Accept", "application/json");
+                con.setRequestProperty("Content-Type", "application/json");
+                con.setUseCaches(false);
+                con.setAllowUserInteraction(false);
+                con.setConnectTimeout(1000);
+                con.setReadTimeout(1000);
 
-            for (String credential : DUMMY_CREDENTIALS) {
-                String[] pieces = credential.split(":");
-                if (pieces[0].equals(mEmail)) {
-                    // Account exists, return true if the password matches.
-                    return pieces[1].equals(mPassword);
+                con.setDoOutput(true);
+                OutputStream os = con.getOutputStream();
+                os.write(jsonObj.toString().getBytes());
+                os.flush();
+                os.close();
+
+                status = con.getResponseCode();
+
+                bufStr = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                String body = bufStr.readLine();
+                if (HttpURLConnection.HTTP_OK == status)
+                {
+                    JSONObject tokenJson = new JSONObject(body);
+
+                    React mApp = (React) selfClass.getApplication();
+                    mApp.setApiToken(tokenJson.getString("api_token"));
+                }
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (JSONException e) {
+                e.printStackTrace();
+            } finally {
+                if( con != null ){
+                    con.disconnect();
                 }
             }
 
-            // TODO: register the new account here.
-            return true;
+            return status;
         }
 
         @Override
-        protected void onPostExecute(final Boolean success) {
+        protected void onPostExecute(final Integer status) {
             mAuthTask = null;
             showProgress(false);
 
-            if (success) {
+            if (HttpURLConnection.HTTP_OK == status) {
+                Intent intent = new Intent(selfClass, RoomEnterActivity.class);
+                startActivity(intent);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
                 finish();
             } else {
                 mPasswordView.setError(getString(R.string.error_incorrect_password));

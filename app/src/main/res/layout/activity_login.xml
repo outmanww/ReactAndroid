@@ -42,6 +42,7 @@
                     android:layout_height="wrap_content"
                     android:hint="@string/prompt_email"
                     android:inputType="textEmailAddress"
+                    android:maxLength="255"
                     android:maxLines="1"
                     android:singleLine="true"
                     android:textColor="#ffffff" />
@@ -61,6 +62,7 @@
                     android:imeActionLabel="@string/action_sign_in_short"
                     android:imeOptions="actionUnspecified"
                     android:inputType="textPassword"
+                    android:maxLength="32"
                     android:maxLines="1"
                     android:singleLine="true"
                     android:textColor="#ffffff" />
@@ -73,15 +75,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="@string/button_OK_string"
-                android:textStyle="bold"
-                android:background="@color/colorReact"
-                android:textColor="#ffffff"
-                android:textSize="@dimen/abc_text_size_large_material" />
-
-            <Space
-                android:layout_width="20dp"
-                android:layout_height="20dp" />
+                android:text="@string/action_sign_in"
+                android:textStyle="bold" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -93,19 +88,15 @@
                 android:textSize="@dimen/abc_text_size_large_material" />
 
             <Space
-                android:layout_width="20dp"
-                android:layout_height="20dp" />
-
-            <Button
-                style="?android:textAppearanceSmall"
-                android:id="@+id/register_button"
-                android:layout_width="match_parent"
+                android:layout_width="10dp"
+                android:layout_height="10dp" />
+            <TextView
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
                 android:text="@string/button_register_string"
-                android:textStyle="bold"
-                android:background="@color/colorReact"
-                android:textColor="#ffffff"
+                android:id="@+id/register_text"
+                android:clickable="true"
+                android:textColor="@color/clickable_text"
                 android:textSize="@dimen/abc_text_size_large_material" />
 
         </LinearLayout>

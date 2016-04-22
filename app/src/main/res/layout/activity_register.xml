@@ -11,9 +11,9 @@
     tools:context="com.optimind_react.reactadroid.RegisterActivity"
     android:background="@drawable/img_sign">
 
-    <!-- Login progress -->
+    <!-- Register progress -->
     <ProgressBar
-        android:id="@+id/login_progress"
+        android:id="@+id/register_progress"
         style="?android:attr/progressBarStyleLarge"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -21,15 +21,55 @@
         android:visibility="gone" />
 
     <ScrollView
-        android:id="@+id/login_form"
+        android:id="@+id/register_form"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
         <LinearLayout
-            android:id="@+id/email_login_form"
+            android:id="@+id/email_register_form"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
+
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:weightSum="1">
+                <android.support.design.widget.TextInputLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.5">
+                    <EditText
+                        android:id="@+id/family_name"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:inputType="textPersonName"
+                        android:hint="@string/prompt_family_name"
+                        android:maxLength="50"
+                        android:ems="10"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="#ffffff" />
+                </android.support.design.widget.TextInputLayout>
+
+                <android.support.design.widget.TextInputLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.5">
+                    <EditText
+                        android:id="@+id/given_name"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:inputType="textPersonName"
+                        android:hint="@string/prompt_given_name"
+                        android:maxLength="50"
+                        android:ems="10"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="#ffffff" />
+                </android.support.design.widget.TextInputLayout>
+            </LinearLayout>
 
             <android.support.design.widget.TextInputLayout
                 android:layout_width="match_parent"
@@ -41,8 +81,10 @@
                     android:layout_height="wrap_content"
                     android:hint="@string/prompt_email"
                     android:inputType="textEmailAddress"
+                    android:maxLength="255"
                     android:maxLines="1"
-                    android:singleLine="true" />
+                    android:singleLine="true"
+                    android:textColor="#ffffff" />
 
             </android.support.design.widget.TextInputLayout>
 
@@ -55,22 +97,39 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="@string/prompt_password"
-                    android:imeActionId="@+id/login"
-                    android:imeActionLabel="@string/action_sign_in_short"
-                    android:imeOptions="actionUnspecified"
                     android:inputType="textPassword"
+                    android:maxLength="32"
                     android:maxLines="1"
-                    android:singleLine="true" />
+                    android:singleLine="true"
+                    android:textColor="#ffffff" />
 
             </android.support.design.widget.TextInputLayout>
+            <android.support.design.widget.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
 
+                <EditText
+                    android:id="@+id/password2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/prompt_password_2"
+                    android:imeActionId="@+id/sign_up"
+                    android:imeActionLabel="@string/action_sign_up_short"
+                    android:imeOptions="actionUnspecified"
+                    android:inputType="textPassword"
+                    android:maxLength="32"
+                    android:maxLines="1"
+                    android:singleLine="true"
+                    android:textColor="#ffffff" />
+
+            </android.support.design.widget.TextInputLayout>
             <Button
-                android:id="@+id/email_sign_in_button"
+                android:id="@+id/user_sign_up_button"
                 style="?android:textAppearanceSmall"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="@string/action_sign_in"
+                android:text="@string/button_register_string"
                 android:textStyle="bold" />
 
         </LinearLayout>

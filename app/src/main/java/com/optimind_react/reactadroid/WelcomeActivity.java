@@ -189,8 +189,8 @@ public class WelcomeActivity extends Activity{
 
     private class AsyncHttpRequest extends AsyncTask<Void,Integer,Integer>
     {
-        private String mUrl;
-        private String mMethod;
+        private final String mUrl;
+        private final String mMethod;
 //    private final static String EOL = "\r\n";
 
         public AsyncHttpRequest(String url, String method)
@@ -212,7 +212,7 @@ public class WelcomeActivity extends Activity{
             // httpのコネクションを管理するクラス
             HttpURLConnection con = null;
             URL url = null;
-            int status = 0;
+            int status = -1;
 
             try {
                 // URLの作成
@@ -230,7 +230,7 @@ public class WelcomeActivity extends Activity{
                 con.setConnectTimeout(1000);
                 con.setReadTimeout(1000);
                 con.connect();
-                return con.getResponseCode();
+                status = con.getResponseCode();
                 /*
                 switch (status) {
                     case HttpURLConnection.HTTP_OK:
@@ -258,9 +258,13 @@ public class WelcomeActivity extends Activity{
                 e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
+            } finally {
+                if( con != null ){
+                    con.disconnect();
+                }
             }
 
-            return null;
+            return status;
         }
 
         @Override
