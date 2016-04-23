@@ -392,6 +392,8 @@ public class RegisterActivity extends AppCompatActivity implements LoaderCallbac
 
                     React mApp = (React) selfClass.getApplication();
                     mApp.setApiToken(tokenJson.getString("api_token"));
+                    mApp.setEmail(mEmail);
+                    mApp.setPassword(mPassword);
                 }
             } catch (MalformedURLException e) {
                 e.printStackTrace();
@@ -414,7 +416,7 @@ public class RegisterActivity extends AppCompatActivity implements LoaderCallbac
             showProgress(false);
 
             if (HttpURLConnection.HTTP_OK == status) {
-                Intent intent = new Intent(selfClass, RoomEnterActivity.class);
+                Intent intent = new Intent(selfClass, HomeActivity.class);
                 startActivity(intent);
                 intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
                 finish();

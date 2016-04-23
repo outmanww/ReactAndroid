@@ -10,13 +10,18 @@
     <string name="prompt_password_2">パスワード再入力</string>
     <string name="prompt_family_name">姓名</string>
     <string name="prompt_given_name">名前</string>
+    <string name="text_confirm_room">ルーム情報確認</string>
+    <string name="action_cancel">キャンセル</string>
     <string name="action_sign_in">ログイン</string>
+    <string name="action_room_in">入室</string>
     <string name="action_sign_in_short">ログイン</string>
     <string name="action_sign_up_short">登録</string>
     <string name="error_invalid_email">正しいメールアドレスを入力してください</string>
     <string name="error_invalid_password">パスワードを6桁以上にしてください</string>
     <string name="error_incorrect_password">パスワードが正しくない</string>
     <string name="error_different_password">パスワードが一致しない</string>
+    <string name="error_room_key">ルームキーを再確認してください</string>
+    <string name="error_invalid_room_key">6桁の数字を入力してください</string>
     <string name="error_field_required">情報を入力してください</string>
     <string name="error_reset_password">"パスワードのリセットができませんでした"</string>
 
@@ -39,5 +44,10 @@
     <string name="pref_key_api_token">Apitoken</string>
     <string name="forget_password">パスワードを忘れたら</string>
     <string name="domain">http://optimind-react.com</string>
+    <string name="title_activity_message">MessageActivity</string>
+    <string name="action_settings">Settings</string>
+    <string name="section_format">Hello World from section: %1$d</string>
+    <string name="title_activity_menu">MenuActivity</string>
+    <string name="re_act">Re:act</string>
 
 </resources>

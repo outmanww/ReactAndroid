@@ -9,7 +9,7 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.optimind_react.reactadroid.RegisterActivity"
-    android:background="@drawable/img_sign">
+    android:background="@color/colorBack">
 
     <!-- Register progress -->
     <ProgressBar
@@ -50,7 +50,7 @@
                         android:ems="10"
                         android:maxLines="1"
                         android:singleLine="true"
-                        android:textColor="#ffffff" />
+                        android:textColor="@color/textLoginRegister" />
                 </android.support.design.widget.TextInputLayout>
 
                 <android.support.design.widget.TextInputLayout
@@ -67,7 +67,7 @@
                         android:ems="10"
                         android:maxLines="1"
                         android:singleLine="true"
-                        android:textColor="#ffffff" />
+                        android:textColor="@color/textLoginRegister" />
                 </android.support.design.widget.TextInputLayout>
             </LinearLayout>
 
@@ -84,7 +84,7 @@
                     android:maxLength="255"
                     android:maxLines="1"
                     android:singleLine="true"
-                    android:textColor="#ffffff" />
+                    android:textColor="@color/textLoginRegister" />
 
             </android.support.design.widget.TextInputLayout>
 
@@ -101,7 +101,7 @@
                     android:maxLength="32"
                     android:maxLines="1"
                     android:singleLine="true"
-                    android:textColor="#ffffff" />
+                    android:textColor="@color/textLoginRegister" />
 
             </android.support.design.widget.TextInputLayout>
             <android.support.design.widget.TextInputLayout
@@ -120,7 +120,7 @@
                     android:maxLength="32"
                     android:maxLines="1"
                     android:singleLine="true"
-                    android:textColor="#ffffff" />
+                    android:textColor="@color/textLoginRegister" />
 
             </android.support.design.widget.TextInputLayout>
             <Button

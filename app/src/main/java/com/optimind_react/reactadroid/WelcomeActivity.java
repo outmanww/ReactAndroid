@@ -1,22 +1,15 @@
 package com.optimind_react.reactadroid;
 
 import android.annotation.SuppressLint;
-import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.AppCompatActivity;
 import android.app.Activity;
 import android.os.Bundle;
 import android.os.Handler;
-import android.view.MotionEvent;
-import android.view.View;
 
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -50,9 +43,9 @@ public class WelcomeActivity extends Activity{
 
 
     // next activity
-    public static final int ACTIVITY_ROOM_ENTER = 0;
+    public static final int ACTIVITY_MAIN = 0;
     public static final int ACTIVITY_LOGIN = 1;
-    private int nextActivity = ACTIVITY_ROOM_ENTER;
+    private int nextActivity = ACTIVITY_MAIN;
 
     private final Runnable autoTransition = new Runnable() {
         @SuppressLint("InlinedApi")
@@ -65,7 +58,7 @@ public class WelcomeActivity extends Activity{
             }
             else
             {
-                intent = new Intent(selfClass, RoomEnterActivity.class);
+                intent = new Intent(selfClass, HomeActivity.class);
             }
             startActivity(intent);
             intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);

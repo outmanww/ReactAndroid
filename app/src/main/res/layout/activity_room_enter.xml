@@ -1,35 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingBottom="@dimen/activity_vertical_margin"
-    android:paddingLeft="@dimen/activity_horizontal_margin"
-    android:paddingRight="@dimen/activity_horizontal_margin"
-    android:paddingTop="@dimen/activity_vertical_margin"
-    tools:context="com.optimind_react.reactadroid.RoomEnterActivity">
+    tools:context=".RoomEnterActivity">
 
-    <Button
-        style="?android:textAppearanceSmall"
-        android:id="@+id/roomKeyButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/button_OK_string"
-        android:onClick="roomKeyButtonClick"
-        android:textStyle="bold"
-        android:layout_centerVertical="true"
-        android:layout_centerHorizontal="true"
-        android:background="@color/colorReact" />
-    <EditText
+    <ProgressBar
+        style="?android:attr/progressBarStyleLarge"
+        android:id="@+id/roomin_progress"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/roomKeyText"
-        android:layout_above="@+id/roomKeyButton"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="20dp"
-        android:inputType="numberDecimal"
-        android:width="350dp"
-        android:maxLength="6"
-        android:hint="@string/edit_text_key_input_string"
-        android:textAlignment="center" />
-</RelativeLayout>
+        android:layout_marginBottom="8dp"
+        android:visibility="gone"
+        android:layout_gravity="center"
+        android:layout_marginTop="8dp" />
+
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1" />
+
+    <LinearLayout
+        android:id="@+id/key_input_area"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="3">
+
+        <EditText
+            android:id="@+id/roomKeyText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            android:imeActionId="@+id/room_in"
+            android:imeActionLabel="@string/action_room_in"
+            android:imeOptions="actionUnspecified"
+            android:inputType="numberDecimal"
+            android:maxLength="6"
+            android:maxLines="1"
+            android:singleLine="true"
+            android:hint="@string/edit_text_key_input_string"
+            android:gravity="center" />
+
+        <Button
+            android:id="@+id/roomKeyButton"
+            style="?android:textAppearanceSmall"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/button_OK_string"
+            android:onClick="roomKeyButtonClick"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>

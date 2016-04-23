@@ -8,7 +8,6 @@ import android.content.SharedPreferences;
  * Created by Warren on 2016/03/21.
  */
 public class React extends Application {
-    private String userName;
     private String email;
     private String password;
     private String apiToken;
@@ -19,7 +18,6 @@ public class React extends Application {
 
         // Get from the SharedPreferences
         SharedPreferences settings = getApplicationContext().getSharedPreferences(getString(R.string.pref_name), Context.MODE_PRIVATE);
-        userName = settings.getString(getString(R.string.pref_key_username), null);
         email = settings.getString(getString(R.string.pref_key_email), null);
         password = settings.getString(getString(R.string.pref_key_password), null);
         apiToken = settings.getString(getString(R.string.pref_key_api_token), null);
@@ -38,20 +36,10 @@ public class React extends Application {
         editor.putString(getString(R.string.pref_key_api_token), this.apiToken);
         editor.apply();
     }
-    public String getUserName(){
-        return this.userName;
-    }
-    public void setUserName(String value)
-    {
-        // Save data to the SharedPreferences
-        SharedPreferences settings = getApplicationContext().getSharedPreferences(getString(R.string.pref_name), Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = settings.edit();
-        editor.putString(getString(R.string.pref_key_username), this.userName);
-        editor.apply();
-    }
     public String getEmail(){ return this.email; }
     public void setEmail(String value)
     {
+        this.email = value;
         // Save data to the SharedPreferences
         SharedPreferences settings = getApplicationContext().getSharedPreferences(getString(R.string.pref_name), Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = settings.edit();
@@ -63,6 +51,7 @@ public class React extends Application {
     }
     public void setPassword(String value)
     {
+        this.password = value;
         // Save data to the SharedPreferences
         SharedPreferences settings = getApplicationContext().getSharedPreferences(getString(R.string.pref_name), Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = settings.edit();

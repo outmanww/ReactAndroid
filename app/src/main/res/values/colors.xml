@@ -5,5 +5,7 @@
     <color name="colorAccent">#FF4081</color>
     <color name="colorReact">#dd3333</color>
     <color name="black_overlay">#66000000</color>
-    <color name="clickable_text">#20b0f3</color>
+    <color name="clickable_text">#ffffff</color>
+    <color name="textLoginRegister">#FFFFFF</color>
+    <color name="colorBack">#9a9aff</color>
 </resources>

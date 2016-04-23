@@ -20,7 +20,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -37,7 +36,6 @@ import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -121,6 +119,10 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
+
+        React mApp = (React) selfClass.getApplication();
+        mEmailView.setText(mApp.getEmail());
+        mPasswordView.setText(mApp.getPassword());
     }
 
     private void populateAutoComplete() {
@@ -368,8 +370,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                 con.setRequestProperty("Content-Type", "application/json");
                 con.setUseCaches(false);
                 con.setAllowUserInteraction(false);
-                con.setConnectTimeout(1000);
-                con.setReadTimeout(1000);
+                con.setConnectTimeout(3000);
+                con.setReadTimeout(3000);
 
                 con.setDoOutput(true);
                 OutputStream os = con.getOutputStream();
@@ -387,6 +389,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
                     React mApp = (React) selfClass.getApplication();
                     mApp.setApiToken(tokenJson.getString("api_token"));
+                    mApp.setEmail(mEmail);
+                    mApp.setPassword(mPassword);
                 }
             } catch (MalformedURLException e) {
                 e.printStackTrace();
@@ -409,7 +413,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             showProgress(false);
 
             if (HttpURLConnection.HTTP_OK == status) {
-                Intent intent = new Intent(selfClass, RoomEnterActivity.class);
+                Intent intent = new Intent(selfClass, HomeActivity.class);
                 startActivity(intent);
                 intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
                 finish();

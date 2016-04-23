@@ -10,7 +10,7 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.optimind_react.reactadroid.LoginActivity"
-    android:background="@drawable/img_sign">
+    android:background="@color/colorBack">
 
     <!-- Login progress -->
     <ProgressBar
@@ -45,7 +45,7 @@
                     android:maxLength="255"
                     android:maxLines="1"
                     android:singleLine="true"
-                    android:textColor="#ffffff" />
+                    android:textColor="@color/textLoginRegister" />
 
             </android.support.design.widget.TextInputLayout>
 
@@ -65,7 +65,7 @@
                     android:maxLength="32"
                     android:maxLines="1"
                     android:singleLine="true"
-                    android:textColor="#ffffff" />
+                    android:textColor="@color/textLoginRegister" />
 
             </android.support.design.widget.TextInputLayout>
 
