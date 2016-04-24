@@ -36,11 +36,12 @@
             android:imeActionId="@+id/room_in"
             android:imeActionLabel="@string/action_room_in"
             android:imeOptions="actionUnspecified"
-            android:inputType="numberDecimal"
+            android:inputType="number"
+            android:digits="1234567890"
             android:maxLength="6"
             android:maxLines="1"
             android:singleLine="true"
-            android:hint="@string/edit_text_key_input_string"
+            android:hint="@string/hint_key_input"
             android:gravity="center" />
 
         <Button

@@ -326,7 +326,7 @@ public class RegisterActivity extends AppCompatActivity implements LoaderCallbac
      * Represents an asynchronous login/registration task used to authenticate
      * the user.
      */
-    public class UserRegisterTask extends AsyncTask<Void, Void, Integer> {
+    private class UserRegisterTask extends AsyncTask<Void, Void, Integer> {
 
         private final String mfamilyName;
         private final String mGivenName;
@@ -373,8 +373,8 @@ public class RegisterActivity extends AppCompatActivity implements LoaderCallbac
                 con.setRequestProperty("Content-Type", "application/json");
                 con.setUseCaches(false);
                 con.setAllowUserInteraction(false);
-                con.setConnectTimeout(3000);
-                con.setReadTimeout(3000);
+                con.setConnectTimeout(getResources().getInteger(R.integer.delay_http_connect));
+                con.setReadTimeout(getResources().getInteger(R.integer.delay_http_read));
 
                 con.setDoOutput(true);
                 OutputStream os = con.getOutputStream();

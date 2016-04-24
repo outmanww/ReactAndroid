@@ -36,7 +36,6 @@ public class WelcomeActivity extends Activity{
      * Some older devices needs a small delay between UI widget updates
      * and a change of the status and navigation bar.
      */
-    private static final int TRANSITION_DELAY = 1000;
     private final Handler mTransHandler = new Handler();
 //    private View mContentView;
     private WelcomeActivity selfClass = this;
@@ -61,7 +60,6 @@ public class WelcomeActivity extends Activity{
                 intent = new Intent(selfClass, HomeActivity.class);
             }
             startActivity(intent);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
             finish();
         }
     };
@@ -177,7 +175,7 @@ public class WelcomeActivity extends Activity{
             AsyncHttpRequest confirmTokenTask = new AsyncHttpRequest(url,"GET");
             confirmTokenTask.execute();
         }
-        mTransHandler.postDelayed(autoTransition, TRANSITION_DELAY);
+        mTransHandler.postDelayed(autoTransition, getResources().getInteger(R.integer.timer_welcome));
     }
 
     private class AsyncHttpRequest extends AsyncTask<Void,Integer,Integer>
@@ -220,8 +218,8 @@ public class WelcomeActivity extends Activity{
                 con.setRequestProperty("Accept-Language", "jp");
                 con.setUseCaches(false);
                 con.setAllowUserInteraction(false);
-                con.setConnectTimeout(1000);
-                con.setReadTimeout(1000);
+                con.setConnectTimeout(getResources().getInteger(R.integer.delay_http_connect));
+                con.setReadTimeout(getResources().getInteger(R.integer.delay_http_read));
                 con.connect();
                 status = con.getResponseCode();
                 /*

@@ -3,8 +3,14 @@ package com.optimind_react.reactadroid;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
+import android.location.LocationProvider;
+import android.provider.Settings;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.AsyncTask;
@@ -13,6 +19,9 @@ import android.os.Build;
 import android.os.Bundle;
 import android.text.InputType;
 import android.text.TextUtils;
+import android.text.method.DigitsKeyListener;
+import android.text.method.KeyListener;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
@@ -28,13 +37,16 @@ import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Calendar;
 
-public class RoomEnterActivity extends AppCompatActivity{
+public class RoomEnterActivity extends AppCompatActivity {
+    private LocationManager mLocationManager;
 
     private RoomConfirmTask mRoomConfirmTask = null;
     private RoomInTask mRoomInTask = null;
@@ -50,6 +62,57 @@ public class RoomEnterActivity extends AppCompatActivity{
     private String lectureName;
     private String timeSlot;
     private String roomKey;
+    private String mApiToken;
+
+
+    private final LocationListener gpsLocationListener =new LocationListener(){
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {}
+
+        @Override
+        public void onProviderEnabled(String provider) {}
+
+        @Override
+        public void onProviderDisabled(String provider) {}
+
+        @Override
+        public void onLocationChanged(Location location) {
+            if(location == null)
+                return;
+            try{
+                mLocationManager.removeUpdates(networkLocationListener);
+                mLocationManager.removeUpdates(gpsLocationListener);
+                startRoomInTask(location.getLatitude(), location.getLongitude());
+            }
+            catch (SecurityException e) {
+                e.printStackTrace();}
+        }
+    };
+    private final LocationListener networkLocationListener = new LocationListener(){
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras){}
+
+        @Override
+        public void onProviderEnabled(String provider) {}
+
+        @Override
+        public void onProviderDisabled(String provider) {}
+
+        @Override
+        public void onLocationChanged(Location location) {
+            if(location == null)
+                return;
+            try{
+                mLocationManager.removeUpdates(networkLocationListener);
+                mLocationManager.removeUpdates(gpsLocationListener);
+                startRoomInTask(location.getLatitude(), location.getLongitude());
+            }
+            catch (SecurityException e) {
+                e.printStackTrace();}
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,7 +122,8 @@ public class RoomEnterActivity extends AppCompatActivity{
         // Set up room in components.
         mRoomKeyView = (EditText) findViewById(R.id.roomKeyText);
 
-//        mRoomKeyView.setInputType(InputType.TYPE_CLASS_NUMBER);
+        KeyListener keyListener = DigitsKeyListener.getInstance("1234567890");
+        mRoomKeyView.setKeyListener(keyListener);
         mRoomKeyView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
@@ -81,6 +145,10 @@ public class RoomEnterActivity extends AppCompatActivity{
 
         mProgressView = findViewById(R.id.roomin_progress);
         mKeyAreaView = findViewById(R.id. key_input_area);
+
+        React mApp = (React) this.getApplication();
+        mApiToken = mApp.getApiToken();
+        mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
     }
 
     /**
@@ -115,10 +183,8 @@ public class RoomEnterActivity extends AppCompatActivity{
             // Show a progress spinner, and kick off a background task to
             // perform the user roomin attempt.
             showProgress(true);
-            React mApp = (React) this.getApplication();
-            String apiToken = mApp.getApiToken();
-            final String url = getString(R.string.domain) + "/student/rooms/"+roomKey+"?api_token="+apiToken;
-            mRoomConfirmTask = new RoomConfirmTask(apiToken,  url, "GET");
+            final String url = getString(R.string.domain) + "/student/rooms/"+roomKey+"?api_token="+mApiToken;
+            mRoomConfirmTask = new RoomConfirmTask( url, "GET");
             mRoomConfirmTask.execute((Void) null);
         }
     }
@@ -168,14 +234,12 @@ public class RoomEnterActivity extends AppCompatActivity{
      */
     public class RoomConfirmTask extends AsyncTask<Void, Void, Integer> {
 
-        private final String mApiToken;
         private final String mUrl;
         private final String mMethod;
         private String responseBody;
 
-        RoomConfirmTask(String apiToken,  String url, String method)
+        RoomConfirmTask(String url, String method)
         {
-            mApiToken = apiToken;
             mUrl = url;
             mMethod = method;
         }
@@ -186,12 +250,10 @@ public class RoomEnterActivity extends AppCompatActivity{
             HttpURLConnection con = null;
             URL url = null;
             int status = 0;
-            JSONObject jsonObj = new JSONObject();
             // InputStreamからbyteデータを取得するための変数
             BufferedReader bufStr = null;
 
             try {
-                jsonObj.put("api_token", mApiToken);
                 // URLの作成
                 url = new URL(mUrl);
                 // 接続用HttpURLConnectionオブジェクト作成
@@ -200,18 +262,18 @@ public class RoomEnterActivity extends AppCompatActivity{
                 con.setRequestMethod(mMethod);
                 // リダイレクトを自動で許可しない設定
                 con.setInstanceFollowRedirects(false);
+                con.setRequestProperty("Content-length", "0");
                 con.setRequestProperty("Accept-Language", "jp");
-                con.setRequestProperty("Accept", "application/json");
-                con.setRequestProperty("Content-Type", "application/json");
                 con.setUseCaches(false);
                 con.setAllowUserInteraction(false);
-                con.setConnectTimeout(3000);
-                con.setReadTimeout(3000);
+                con.setConnectTimeout(getResources().getInteger(R.integer.delay_http_connect));
+                con.setReadTimeout(getResources().getInteger(R.integer.delay_http_read));
                 con.connect();
 
                 status = con.getResponseCode();
 
                 bufStr = new BufferedReader(new InputStreamReader(con.getInputStream()));
+
                 responseBody = bufStr.readLine();
                 if (HttpURLConnection.HTTP_OK == status)
                 {
@@ -256,17 +318,35 @@ public class RoomEnterActivity extends AppCompatActivity{
                 // アラートダイアログのボタンがクリックされた時に呼び出されるコールバックリスナーを登録します
                 confirmAlert.setNegativeButton(getString(R.string.action_room_in), new DialogInterface.OnClickListener(){
                     public void onClick(DialogInterface dialog, int which) {
-                        final String roomInUrl = getString(R.string.domain) + "/student/rooms/"+roomKey+"?api_token="+mApiToken;
-                        mRoomInTask = new RoomInTask(mApiToken,  roomInUrl, "POST");
-                        mRoomInTask.execute((Void) null);
-                    }});
+                        final boolean gpsEnabled = mLocationManager.isProviderEnabled(mLocationManager.GPS_PROVIDER);
+                        final boolean networkEnabled = mLocationManager.isProviderEnabled(mLocationManager.NETWORK_PROVIDER);
+                        if (!gpsEnabled && !networkEnabled) {
+                            // GPSを設定するように促す
+                            enableLocationSettings();
+                            return;
+                        }
+                        try {
+                            Location location = mLocationManager.getLastKnownLocation(mLocationManager.GPS_PROVIDER);
+                            // check if the location information is new in 1 minutes
+                            if (location != null && location.getTime() > Calendar.getInstance().getTimeInMillis() - 1 * 60 * 1000) {
+                                startRoomInTask(location.getLatitude(), location.getLongitude());
+                            } else {
+                                if(gpsEnabled)
+                                    mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, gpsLocationListener);
+                                else
+                                    mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, networkLocationListener);
+                            }}
+                        catch (SecurityException e) {
+                            e.printStackTrace();}
+                        }
+                    });
                 //ダイアログ表示
                 confirmAlert.show();
             }
             else
             {
                 showProgress(false);
-                if (400 == status)
+                if (400 == status && responseBody != null)
                     mRoomKeyView.setError(responseBody);
                 else
                     mRoomKeyView.setError(getString(R.string.error_room_key));
@@ -281,20 +361,28 @@ public class RoomEnterActivity extends AppCompatActivity{
         }
     }
 
+    private void startRoomInTask(double geoLat, double geoLong)
+    {
+        final String roomInUrl = getString(R.string.domain) + "/student/rooms/" + roomKey + "?api_token=" + mApiToken;
+        mRoomInTask = new RoomInTask(geoLat, geoLong, roomInUrl, "POST");
+        mRoomInTask.execute((Void) null);
+    }
+
     /**
      * Represents an asynchronous room check task used to authenticate
      * the user.
      */
-    public class RoomInTask extends AsyncTask<Void, Void, Integer> {
-
-        private final String mApiToken;
+    private class RoomInTask extends AsyncTask<Void, Void, Integer> {
         private final String mUrl;
         private final String mMethod;
+        private final double mLat;
+        private final double mLong;
         private String responseBody;
 
-        RoomInTask(String apiToken,  String url, String method)
+        RoomInTask(double geoLat, double geoLong, String url, String method)
         {
-            mApiToken = apiToken;
+            mLat = geoLat;
+            mLong = geoLong;
             mUrl = url;
             mMethod = method;
         }
@@ -312,6 +400,9 @@ public class RoomEnterActivity extends AppCompatActivity{
             try {
                 jsonObj.put("action", 1);
                 jsonObj.put("type", 1);
+                jsonObj.put("geo_lat", mLat);
+                jsonObj.put("geo_long", mLong);
+
                 // URLの作成
                 url = new URL(mUrl);
                 // 接続用HttpURLConnectionオブジェクト作成
@@ -325,8 +416,8 @@ public class RoomEnterActivity extends AppCompatActivity{
                 con.setRequestProperty("Content-Type", "application/json");
                 con.setUseCaches(false);
                 con.setAllowUserInteraction(false);
-                con.setConnectTimeout(3000);
-                con.setReadTimeout(3000);
+                con.setConnectTimeout(getResources().getInteger(R.integer.delay_http_connect));
+                con.setReadTimeout(getResources().getInteger(R.integer.delay_http_read));
 
                 con.setDoOutput(true);
                 OutputStream os = con.getOutputStream();
@@ -344,7 +435,8 @@ public class RoomEnterActivity extends AppCompatActivity{
                 e.printStackTrace();
             } catch (JSONException e) {
                 e.printStackTrace();
-            } finally {
+            }
+            finally {
                 if( con != null ){
                     con.disconnect();
                 }
@@ -373,7 +465,7 @@ public class RoomEnterActivity extends AppCompatActivity{
                 if (400 == status)
                     mRoomKeyView.setError(responseBody);
                 else
-                    mRoomKeyView.setError(getString(R.string.error_room_key));
+                    mRoomKeyView.setError(getString(R.string.error_closed_room));
                 mRoomKeyView.requestFocus();
             }
         }
@@ -383,5 +475,10 @@ public class RoomEnterActivity extends AppCompatActivity{
             mRoomInTask = null;
             showProgress(false);
         }
+    }
+
+    private void enableLocationSettings() {
+        Intent settingsIntent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+        startActivity(settingsIntent);
     }
 }

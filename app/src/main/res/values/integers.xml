@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <integer name="action_basic">1</integer>
+    <integer name="action_reaction_anonymous">2</integer>
+    <integer name="action_reaction_real_name">3</integer>
+    <integer name="action_message">4</integer>
+    <integer name="type_confused">1</integer>
+    <integer name="type_interesting">2</integer>
+    <integer name="type_boring">3</integer>
+    <integer name="type_room_in">1</integer>
+    <integer name="type_room_out">2</integer>
+    <integer name="type_fore_in">3</integer>
+    <integer name="type_fore_out">4</integer>
+    <integer name="type_question">1</integer>
+    <integer name="type_feeling">2</integer>
+    <integer name="type_others">3</integer>
+    <integer name="delay_http_connect">3000</integer>
+    <integer name="delay_http_read">3000</integer>
+    <integer name="delay_gps">10</integer>
+    <integer name="timer_welcome">1000</integer>
+    <integer name="timer_require_status">10000</integer>
+    <integer name="timer_react_button_mask">10000</integer>
+</resources>

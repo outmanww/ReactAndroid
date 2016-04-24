@@ -71,6 +71,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+
         // Set up the login form.
         mEmailView = (AutoCompleteTextView) findViewById(R.id.email);
         populateAutoComplete();
@@ -100,7 +101,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent(selfClass, RegisterActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
                 startActivity(intent);
             }
         });
@@ -329,7 +329,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
      * Represents an asynchronous login/registration task used to authenticate
      * the user.
      */
-    public class UserLoginTask extends AsyncTask<Void, Void, Integer> {
+    private class UserLoginTask extends AsyncTask<Void, Void, Integer> {
 
         private final String mEmail;
         private final String mPassword;
@@ -370,8 +370,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                 con.setRequestProperty("Content-Type", "application/json");
                 con.setUseCaches(false);
                 con.setAllowUserInteraction(false);
-                con.setConnectTimeout(3000);
-                con.setReadTimeout(3000);
+                con.setConnectTimeout(getResources().getInteger(R.integer.delay_http_connect));
+                con.setReadTimeout(getResources().getInteger(R.integer.delay_http_read));
 
                 con.setDoOutput(true);
                 OutputStream os = con.getOutputStream();
@@ -415,7 +415,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             if (HttpURLConnection.HTTP_OK == status) {
                 Intent intent = new Intent(selfClass, HomeActivity.class);
                 startActivity(intent);
-                intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
                 finish();
             } else {
                 mPasswordView.setError(getString(R.string.error_incorrect_password));
