@@ -4,30 +4,21 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
-import android.app.LoaderManager.LoaderCallbacks;
-
-import android.content.CursorLoader;
-import android.content.Loader;
-import android.database.Cursor;
-import android.net.Uri;
 import android.os.AsyncTask;
 
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.ContactsContract;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.inputmethod.EditorInfo;
-import android.widget.ArrayAdapter;
-import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import org.json.JSONException;
@@ -38,48 +29,39 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-
-import static android.Manifest.permission.READ_CONTACTS;
 
 /**
  * A register screen that offers register via name/email/password.
  */
-public class RegisterActivity extends AppCompatActivity implements LoaderCallbacks<Cursor> {
-
-    /**
-     * Id to identity READ_CONTACTS permission request.
-     */
-    private static final int REQUEST_READ_CONTACTS = 0;
+public class RegisterActivity extends AppCompatActivity 
+{
+    // tag for debug
+    private final static String TAG = RegisterActivity.class.getSimpleName();
+    
     /**
      * Keep track of the register task to ensure we can cancel it if requested.
      */
-    private UserRegisterTask mAuthTask = null;
+    private UserRegisterTask mRegisterTask = null;
 
     // UI references.
-    private AutoCompleteTextView mEmailView;
+    private EditText mEmailView;
     private EditText mFamilyNameView;
     private EditText mGivenNameView;
     private EditText mPasswordView;
     private EditText mPasswordConfirmView;
     private View mProgressView;
     private View mRegisterFormView;
-    private RegisterActivity selfClass = this;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
+
         // Set up the register form.
         mFamilyNameView = (EditText) findViewById(R.id.family_name);
         mGivenNameView = (EditText) findViewById(R.id.given_name);
-
-        mEmailView = (AutoCompleteTextView) findViewById(R.id.email);
-        populateAutoComplete();
-
+        mEmailView = (EditText) findViewById(R.id.email);
         mPasswordView = (EditText) findViewById(R.id.password);
         mPasswordConfirmView = (EditText) findViewById(R.id.password2);
         mPasswordConfirmView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
@@ -105,59 +87,15 @@ public class RegisterActivity extends AppCompatActivity implements LoaderCallbac
         mProgressView = findViewById(R.id.register_progress);
     }
 
-    private void populateAutoComplete() {
-        if (!mayRequestContacts()) {
-            return;
-        }
-
-        getLoaderManager().initLoader(0, null, this);
-    }
-
-    private boolean mayRequestContacts() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            return true;
-        }
-        if (checkSelfPermission(READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
-            return true;
-        }
-        if (shouldShowRequestPermissionRationale(READ_CONTACTS)) {
-            Snackbar.make(mEmailView, R.string.permission_rationale, Snackbar.LENGTH_INDEFINITE)
-                    .setAction(android.R.string.ok, new View.OnClickListener() {
-                        @Override
-                        @TargetApi(Build.VERSION_CODES.M)
-                        public void onClick(View v) {
-                            requestPermissions(new String[]{READ_CONTACTS}, REQUEST_READ_CONTACTS);
-                        }
-                    });
-        } else {
-            requestPermissions(new String[]{READ_CONTACTS}, REQUEST_READ_CONTACTS);
-        }
-        return false;
-    }
-
-    /**
-     * Callback received when a permissions request has been completed.
-     */
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
-        if (requestCode == REQUEST_READ_CONTACTS) {
-            if (grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                populateAutoComplete();
-            }
-        }
-    }
-
-
     /**
      * Attempts to sign in or register the account specified by the register form.
      * If there are form errors (invalid email, missing fields, etc.), the
      * errors are presented and no actual register attempt is made.
      */
-    private void attemptRegister() {
-        if (mAuthTask != null) {
+    private void attemptRegister()
+    {
+        if (mRegisterTask != null)
             return;
-        }
 
         // Reset errors.
         mFamilyNameView.setError(null);
@@ -177,70 +115,90 @@ public class RegisterActivity extends AppCompatActivity implements LoaderCallbac
         View focusView = null;
 
         // Check for a valid password, if the user entered one.
-        if (!TextUtils.isEmpty(password) && !isPasswordValid(password)) {
+        if (TextUtils.isEmpty(password))
+        {
+            mPasswordView.setError(getString(R.string.error_field_required));
+            focusView = mPasswordView;
+            cancel = true;
+        }
+        else if(!React.isPasswordValid(password))
+        {
             mPasswordView.setError(getString(R.string.error_invalid_password));
             focusView = mPasswordView;
             cancel = true;
         }
+
+        if (TextUtils.isEmpty(passwordConfirm))
+        {
+            mPasswordConfirmView.setError(getString(R.string.error_field_required));
+            focusView = mPasswordConfirmView;
+            cancel = true;
+        }
         // Check for a valid password, if the user entered one.
-        if (!passwordConfirm.equals(password)) {
+        else if (!passwordConfirm.equals(password))
+        {
             mPasswordConfirmView.setError(getString(R.string.error_different_password));
             focusView = mPasswordConfirmView;
             cancel = true;
         }
+
         // Check for a valid email address.
-        if (TextUtils.isEmpty(email)) {
+        if (TextUtils.isEmpty(email))
+        {
             mEmailView.setError(getString(R.string.error_field_required));
             focusView = mEmailView;
             cancel = true;
-        } else if (!isEmailValid(email)) {
+        } else if (!React.isEmailValid(email))
+        {
             mEmailView.setError(getString(R.string.error_invalid_email));
             focusView = mEmailView;
             cancel = true;
         }
-        if (TextUtils.isEmpty(givenName)) {
+
+        // Check for a valid name.
+        if (TextUtils.isEmpty(givenName))
+        {
             mGivenNameView.setError(getString(R.string.error_field_required));
             focusView = mGivenNameView;
             cancel = true;
         }
+
         // Check for a valid name.
-        if (TextUtils.isEmpty(familyName)) {
+        if (TextUtils.isEmpty(familyName))
+        {
             mFamilyNameView.setError(getString(R.string.error_field_required));
             focusView = mFamilyNameView;
             cancel = true;
         }
 
-        if (cancel) {
+        if (cancel)
+        {
             // There was an error; don't attempt register and focus the first
             // form field with an error.
             focusView.requestFocus();
-        } else {
+        }
+        else
+        {
             // Show a progress spinner, and kick off a background task to
             // perform the user register attempt.
             showProgress(true);
             final String url = getString(R.string.domain)+"/student/signup";
-            mAuthTask = new UserRegisterTask(familyName, givenName, email, password, url, "POST");
-            mAuthTask.execute((Void) null);
+            mRegisterTask = new UserRegisterTask(familyName, givenName, email, password, url);
+            mRegisterTask.execute((Void) null);
         }
-    }
-
-    private boolean isEmailValid(String email) {
-        return (email.contains("@") && email.contains("."));
-    }
-
-    private boolean isPasswordValid(String password) {
-        return password.length() >= 6;
     }
 
     /**
      * Shows the progress UI and hides the register form.
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
-    private void showProgress(final boolean show) {
+    private void showProgress(final boolean show)
+    {
         // On Honeycomb MR2 we have the ViewPropertyAnimator APIs, which allow
         // for very easy animations. If available, use these APIs to fade-in
         // the progress spinner.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2)
+        {
             int shortAnimTime = getResources().getInteger(android.R.integer.config_shortAnimTime);
 
             mRegisterFormView.setVisibility(show ? View.GONE : View.VISIBLE);
@@ -260,7 +218,9 @@ public class RegisterActivity extends AppCompatActivity implements LoaderCallbac
                     mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
                 }
             });
-        } else {
+        }
+        else
+        {
             // The ViewPropertyAnimator APIs are not available, so simply show
             // and hide the relevant UI components.
             mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
@@ -268,167 +228,181 @@ public class RegisterActivity extends AppCompatActivity implements LoaderCallbac
         }
     }
 
-    @Override
-    public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
-        return new CursorLoader(this,
-                // Retrieve data rows for the device user's 'profile' contact.
-                Uri.withAppendedPath(ContactsContract.Profile.CONTENT_URI,
-                        ContactsContract.Contacts.Data.CONTENT_DIRECTORY), ProfileQuery.PROJECTION,
-
-                // Select only email addresses.
-                ContactsContract.Contacts.Data.MIMETYPE +
-                        " = ?", new String[]{ContactsContract.CommonDataKinds.Email
-                .CONTENT_ITEM_TYPE},
-
-                // Show primary email addresses first. Note that there won't be
-                // a primary email address if the user hasn't specified one.
-                ContactsContract.Contacts.Data.IS_PRIMARY + " DESC");
-    }
-
-    @Override
-    public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
-        List<String> emails = new ArrayList<>();
-        cursor.moveToFirst();
-        while (!cursor.isAfterLast()) {
-            emails.add(cursor.getString(ProfileQuery.ADDRESS));
-            cursor.moveToNext();
-        }
-
-        addEmailsToAutoComplete(emails);
-    }
-
-    @Override
-    public void onLoaderReset(Loader<Cursor> cursorLoader) {
-
-    }
-
-    private void addEmailsToAutoComplete(List<String> emailAddressCollection) {
-        //Create adapter to tell the AutoCompleteTextView what to show in its dropdown list.
-        ArrayAdapter<String> adapter =
-                new ArrayAdapter<>(RegisterActivity.this,
-                        android.R.layout.simple_dropdown_item_1line, emailAddressCollection);
-
-        mEmailView.setAdapter(adapter);
-    }
-
-
-    private interface ProfileQuery {
-        String[] PROJECTION = {
-                ContactsContract.CommonDataKinds.Email.ADDRESS,
-                ContactsContract.CommonDataKinds.Email.IS_PRIMARY,
-        };
-
-        int ADDRESS = 0;
-        int IS_PRIMARY = 1;
-    }
-
     /**
      * Represents an asynchronous login/registration task used to authenticate
      * the user.
      */
-    private class UserRegisterTask extends AsyncTask<Void, Void, Integer> {
-
-        private final String mfamilyName;
+    private class UserRegisterTask extends AsyncTask<Void, Void, JSONObject>
+    {
+        private final String mFamilyName;
         private final String mGivenName;
         private final String mEmail;
         private final String mPassword;
         private final String mUrl;
-        private final String mMethod;
-        private final static String EOL = "\r\n";
+        private Integer mResponseCode = 0;
+        private  boolean isTimeOut = false;
 
-        UserRegisterTask(String familyName, String givenName, String email, String password, String url, String method) {
-            mfamilyName = familyName;
+        UserRegisterTask(String familyName, String givenName, String email, String password, String url)
+        {
+            mFamilyName = familyName;
             mGivenName = givenName;
             mEmail = email;
             mPassword = password;
             mUrl = url;
-            mMethod = method;
         }
 
         @Override
-        protected Integer doInBackground(Void... params) {
-            // httpのコネクションを管理するクラス
+        protected JSONObject doInBackground(Void... params)
+        {
+            Log.d(TAG, "RegisterTask Start");
             HttpURLConnection con = null;
-            URL url = null;
-            int status = 0;
-            JSONObject jsonObj = new JSONObject();
-            // InputStreamからbyteデータを取得するための変数
-            BufferedReader bufStr = null;
+            URL url;
 
-            try {
-                jsonObj.put("family_name", mfamilyName);
-                jsonObj.put("given_name", mGivenName);
-                jsonObj.put("email", mEmail);
-                jsonObj.put("password", mPassword);
-                // URLの作成
+            JSONObject jsonOutput = null;
+            BufferedReader bufStr;
+
+            try
+            {
+                JSONObject jsonInput = new JSONObject();
+                jsonInput.put("family_name", mFamilyName);
+                jsonInput.put("given_name", mGivenName);
+                jsonInput.put("email", mEmail);
+                jsonInput.put("password", mPassword);
+
                 url = new URL(mUrl);
-                // 接続用HttpURLConnectionオブジェクト作成
-                con = (HttpURLConnection)url.openConnection();
-                // リクエストメソッドの設定
-                con.setRequestMethod(mMethod);
-                // リダイレクトを自動で許可しない設定
+                con = (HttpURLConnection) url.openConnection();
+                con.setRequestMethod("POST");
                 con.setInstanceFollowRedirects(false);
-                con.setRequestProperty("Accept-Language", "jp");
+                con.setRequestProperty("Accept-Language", "ja");
                 con.setRequestProperty("Accept", "application/json");
                 con.setRequestProperty("Content-Type", "application/json");
                 con.setUseCaches(false);
                 con.setAllowUserInteraction(false);
                 con.setConnectTimeout(getResources().getInteger(R.integer.delay_http_connect));
                 con.setReadTimeout(getResources().getInteger(R.integer.delay_http_read));
-
+                con.setDoInput(true);
                 con.setDoOutput(true);
+
                 OutputStream os = con.getOutputStream();
-                os.write(jsonObj.toString().getBytes());
+                os.write(jsonInput.toString().getBytes());
                 os.flush();
                 os.close();
 
-                status = con.getResponseCode();
+                mResponseCode = con.getResponseCode();
 
-                bufStr = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                if (HttpURLConnection.HTTP_OK == mResponseCode)
+                    bufStr = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                else
+                    bufStr = new BufferedReader(new InputStreamReader(con.getErrorStream()));
                 String body = bufStr.readLine();
-                if (HttpURLConnection.HTTP_OK == status)
-                {
-                    JSONObject tokenJson = new JSONObject(body);
-
-                    React mApp = (React) selfClass.getApplication();
-                    mApp.setApiToken(tokenJson.getString("api_token"));
-                    mApp.setEmail(mEmail);
-                    mApp.setPassword(mPassword);
-                }
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (JSONException e) {
-                e.printStackTrace();
-            } finally {
-                if( con != null ){
-                    con.disconnect();
-                }
+                jsonOutput = new JSONObject(body);
             }
-
-            return status;
+            catch (java.net.UnknownHostException|java.net.SocketTimeoutException e) {
+                isTimeOut = true;
+                e.printStackTrace();
+            }
+            catch (JSONException|IOException e)
+            {
+                e.printStackTrace();
+            }
+            finally
+            {
+                if( con != null )
+                    con.disconnect();
+            }
+            return jsonOutput;
         }
 
         @Override
-        protected void onPostExecute(final Integer status) {
-            mAuthTask = null;
+        protected void onPostExecute(final JSONObject result)
+        {
+            Log.d(TAG, "RegisterTask Finish");
+
+            mRegisterTask = null;
             showProgress(false);
 
-            if (HttpURLConnection.HTTP_OK == status) {
-                Intent intent = new Intent(selfClass, HomeActivity.class);
+            String errMsg = null;
+
+            if (HttpURLConnection.HTTP_OK == mResponseCode)
+            {
+                React mApp = (React) RegisterActivity.this.getApplication();
+                try
+                {
+                    mApp.setName(mFamilyName+mGivenName);
+                    mApp.setEmail(mEmail);
+                    mApp.setApiToken(result.getString("api_token"));
+                }catch (JSONException e)
+                {
+                    e.printStackTrace();
+                }
+                Intent intent = new Intent(RegisterActivity.this, HomeActivity.class);
                 startActivity(intent);
-                intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
                 finish();
-            } else {
-                mPasswordView.setError(getString(R.string.error_incorrect_password));
-                mPasswordView.requestFocus();
+                return;
+            }
+
+            if(isTimeOut)
+            {
+                errMsg = getString(R.string.error_timeout);
+            }
+            else if(result == null)
+            {
+                errMsg = getString(R.string.error_unknown);
+            }
+            else
+            {
+                try
+                {
+                    String type = result.getString("type");
+                    String message = result.getString("message");
+                    String[] info = type.split("\\.");
+                    switch(info[0])
+                    {
+                        case "password":
+                            mPasswordView.setError(message);
+                            mPasswordView.requestFocus();
+                            break;
+                        case "email":
+                            mEmailView.setError(message);
+                            mEmailView.requestFocus();
+                            break;
+                        case "family_name":
+                            mFamilyNameView.setError(message);
+                            mFamilyNameView.requestFocus();
+                            break;
+                        case "given_name":
+                            mGivenNameView.setError(message);
+                            mGivenNameView.requestFocus();
+                            break;
+                        default:
+                            errMsg = message;
+                            break;
+                    }
+                }
+                catch (JSONException e)
+                {
+                    errMsg = getString(R.string.error_unknown);
+                }
+            }
+
+            if(!TextUtils.isEmpty(errMsg))
+            {
+                final LinearLayout layout = (LinearLayout) findViewById(R.id.root_layout);
+                Snackbar.make(layout, errMsg, Snackbar.LENGTH_LONG)
+                        .setAction(getString(R.string.text_resend), new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                attemptRegister();
+                            }
+                        })
+                        .show();
             }
         }
 
         @Override
-        protected void onCancelled() {
-            mAuthTask = null;
+        protected void onCancelled()
+        {
+            mRegisterTask = null;
             showProgress(false);
         }
     }

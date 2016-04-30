@@ -1,18 +1,26 @@
 package com.optimind_react.reactadroid;
 
+import android.annotation.SuppressLint;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Handler;
+import android.os.PowerManager;
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
-import android.widget.Button;
-import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import org.json.JSONException;
@@ -23,27 +31,33 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Timer;
-import java.util.TimerTask;
 
-public class ReactionActivity extends AppCompatActivity implements View.OnClickListener {
-    private ReactionActivity selfClass = this;
-    private String mApiToken;
+public class ReactionActivity extends AppCompatActivity implements View.OnClickListener
+{
+    // tag for debug
+    private final static String TAG = ReactionActivity.class.getSimpleName();
+
+    // task
     private Resources mRes;
     private ReactTask mReactTask = null;
     private StatusTask mStatusTask = null;
-    // UI Threadへのpost用ハンドラ
-    private Handler mHandler = new Handler();
-    // show room key
+    private String mStatusUrl, mReactUrl;
     private String mRoomKey;
+
+    // handler
+    private final Handler mReactTimerHandler = new Handler();
+    private final Handler mStatusTimerHandler = new Handler();
+
+    // UI components
     private TextView mTimePast, mClickNum, mNumConfused, mNumInteresting, mNumBoring;
 
-    private String mStatusUrl, mReactUrl;
+    // flag
+    private boolean isStatusTimerRun = false;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState)
+    {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_reaction);
 
@@ -67,27 +81,33 @@ public class ReactionActivity extends AppCompatActivity implements View.OnClickL
         mNumBoring = (TextView)findViewById(R.id.NumBoring);
         mNumBoring.setText("0");
 
-        ((Button)findViewById(R.id.ConfusedButton)).setOnClickListener(this);
-        ((Button)findViewById(R.id.InterestingButton)).setOnClickListener(this);
-        ((Button)findViewById(R.id.BoringButton)).setOnClickListener(this);
-        ((ImageButton)findViewById(R.id.MessageButton)).setOnClickListener(this);
+        findViewById(R.id.ConfusedButton).setOnClickListener(this);
+        findViewById(R.id.InterestingButton).setOnClickListener(this);
+        findViewById(R.id.BoringButton).setOnClickListener(this);
+        findViewById(R.id.MessageButton).setOnClickListener(this);
 
         React mApp = (React) this.getApplication();
-        mApiToken = mApp.getApiToken();
+        String apiToken = mApp.getApiToken();
 
-        mReactUrl = getString(R.string.domain) + "/student/rooms/"+mRoomKey+"?api_token="+mApiToken;
-        mStatusUrl = getString(R.string.domain) + "/student/rooms/"+mRoomKey+"/status?api_token="+mApiToken;
+        mReactUrl = getString(R.string.domain) + "/student/rooms/"+mRoomKey+"?api_token="+apiToken;
+        mStatusUrl = getString(R.string.domain) + "/student/rooms/"+mRoomKey+"/status?api_token="+apiToken;
 
-        mStatusTask = new StatusTask( mStatusUrl, "GET");
+        mStatusTask = new StatusTask(mStatusUrl);
         mStatusTask.execute((Void) null);
+
+        IntentFilter regFilter = new IntentFilter();
+        // get device shutdown or reboot event
+        regFilter.addAction(Intent.ACTION_REBOOT);
+        regFilter.addAction(Intent.ACTION_SHUTDOWN);
+        registerReceiver(receiver, regFilter );
     }
 
-    public void onClick(View v) {
+    public void onClick(View v)
+    {
         if(v.getId() == R.id.MessageButton)
         {
-            Intent intent = new Intent(selfClass, MessageActivity.class);
+            Intent intent = new Intent(ReactionActivity.this, MessageActivity.class);
             intent.putExtra("ROOM_KEY", mRoomKey);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
             startActivity(intent);
             return;
         }
@@ -105,275 +125,424 @@ public class ReactionActivity extends AppCompatActivity implements View.OnClickL
             default:
                 break;
         }
-        // calculate the click number
-        Integer clickNum = Integer.parseInt(mClickNum.getText().toString())+1;
-        mClickNum.setText(String.valueOf(clickNum));
 
         // make button invisible
         v.setClickable(false);
-        //v.setVisibility(View.INVISIBLE);
         v.getBackground().setColorFilter(Color.GRAY, PorterDuff.Mode.MULTIPLY);
 
-        //タイマースケジュール設定＆開始
-        //タイマーインスタンス生成
-        Timer reactTimer = new Timer();
-        //タスククラスインスタンス生成
-        reactTimer.schedule(new ReactTimerTask(v), mRes.getInteger(R.integer.timer_react_button_mask));
+        mReactTimerHandler.postDelayed(new ReactTimerTask(v), mRes.getInteger(R.integer.timer_react_button_mask));
 
-        mReactTask = new ReactTask(mRes.getInteger(R.integer.action_reaction_anonymous), type, mReactUrl, "POST");
+        mReactTask = new ReactTask(mRes.getInteger(R.integer.action_reaction_anonymous), type, mReactUrl);
         mReactTask.execute((Void) null);
     }
+
     @Override
-    public void onBackPressed() {
+    public void onBackPressed()
+    {
+        // create and show dialog
         AlertDialog.Builder confirmAlert = new AlertDialog.Builder(this);
-        //ダイアログタイトルをセット
         confirmAlert.setTitle(getString(R.string.title_quit_room));
-        //ダイアログメッセージをセット
         confirmAlert.setMessage(getString(R.string.text_quit_room));
 
-        // アラートダイアログのボタンがクリックされた時に呼び出されるコールバックリスナーを登録します
-        confirmAlert.setPositiveButton(getString(R.string.action_cancel), new DialogInterface.OnClickListener(){
+        // press OK
+        confirmAlert.setPositiveButton(getString(R.string.action_room_out), new DialogInterface.OnClickListener(){
             public void onClick(DialogInterface dialog, int which) {
-            }});
-
-        // アラートダイアログのボタンがクリックされた時に呼び出されるコールバックリスナーを登録します
-        confirmAlert.setNegativeButton(getString(R.string.action_room_out), new DialogInterface.OnClickListener(){
-            public void onClick(DialogInterface dialog, int which) {
-                mReactTask = new ReactTask(mRes.getInteger(R.integer.action_basic), mRes.getInteger(R.integer.type_room_out), mReactUrl, "POST");
+                mReactTask = new ReactTask(mRes.getInteger(R.integer.action_basic), mRes.getInteger(R.integer.type_room_out), mReactUrl);
                 mReactTask.execute((Void) null);
                 finish();
             }
         });
-        //ダイアログ表示
+
+        // press cancel
+        confirmAlert.setNegativeButton(getString(R.string.action_cancel), new DialogInterface.OnClickListener(){
+            public void onClick(DialogInterface dialog, int which) {
+            }});
+
+        // show dialog
         confirmAlert.show();
     }
 
-    /**
-     * Represents an asynchronous room check task used to authenticate
-     * the user.
-     */
-    private class ReactTask extends AsyncTask<Void, Void, Integer> {
-
-        private final int mAction;
-        private final int mType;
-        private final String mUrl;
-        private final String mMethod;
-        private String responseBody;
-
-        ReactTask(Integer action, Integer type, String url, String method)
-        {
-            mAction = action;
-            mType = type;
-            mUrl = url;
-            mMethod = method;
-        }
-
-        @Override
-        protected Integer doInBackground(Void... params) {
-            // httpのコネクションを管理するクラス
-            HttpURLConnection con = null;
-            URL url = null;
-            int status = 0;
-            JSONObject jsonObj = new JSONObject();
-            // InputStreamからbyteデータを取得するための変数
-            BufferedReader bufStr = null;
-
-            try {
-                jsonObj.put("action", mAction);
-                jsonObj.put("type", mType);
-                // URLの作成
-                url = new URL(mUrl);
-                // 接続用HttpURLConnectionオブジェクト作成
-                con = (HttpURLConnection)url.openConnection();
-                // リクエストメソッドの設定
-                con.setRequestMethod(mMethod);
-                // リダイレクトを自動で許可しない設定
-                con.setInstanceFollowRedirects(false);
-                con.setRequestProperty("Accept-Language", "jp");
-                con.setRequestProperty("Accept", "application/json");
-                con.setRequestProperty("Content-Type", "application/json");
-                con.setUseCaches(false);
-                con.setAllowUserInteraction(false);
-                con.setConnectTimeout(mRes.getInteger(R.integer.delay_http_connect));
-                con.setReadTimeout(mRes.getInteger(R.integer.delay_http_read));
-
-                con.setDoOutput(true);
-                OutputStream os = con.getOutputStream();
-                os.write(jsonObj.toString().getBytes());
-                os.flush();
-                os.close();
-
-                status = con.getResponseCode();
-
-                bufStr = new BufferedReader(new InputStreamReader(con.getInputStream()));
-                responseBody = bufStr.readLine();
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (JSONException e) {
-                e.printStackTrace();
-            } finally {
-                if( con != null ){
-                    con.disconnect();
-                }
+    // for foreground <-> background event
+    private BroadcastReceiver receiver = new BroadcastReceiver() {
+        public void onReceive(final Context context, final Intent intent) {
+            //check if the broadcast is our desired one
+            if (intent.getAction().equals(Intent.ACTION_REBOOT))
+            {
+                Log.d(TAG, "ACTION_REBOOT");
+                mReactTask = new ReactTask(mRes.getInteger(R.integer.action_basic), mRes.getInteger(R.integer.type_room_out), mReactUrl);
+                mReactTask.execute((Void) null);
             }
+            else if (intent.getAction().equals(Intent.ACTION_SHUTDOWN))
+            {
+                Log.d(TAG, "ACTION_SHUTDOWN");
+                mReactTask = new ReactTask(mRes.getInteger(R.integer.action_basic), mRes.getInteger(R.integer.type_room_out), mReactUrl);
+                mReactTask.execute((Void) null);
+            }
+        }
+    };
 
-            return status;
+    @Override
+    public void onStop()
+    {
+        super.onStop();
+
+        // happened by the app itself
+        React mApp = (React) this.getApplication();
+        if(mApp.isForeground())
+            return;
+
+        // happened by turn off the power
+        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
+            if(!pm.isInteractive())
+                return;
         }
 
-        @Override
-        protected void onPostExecute(final Integer status) {
-            mReactTask = null;}
-
-        @Override
-        protected void onCancelled() {
-            mReactTask = null;
-        }
+        Log.d(TAG, "onStop");
+        mReactTask = new ReactTask(mRes.getInteger(R.integer.action_basic), mRes.getInteger(R.integer.type_fore_out), mReactUrl);
+        mReactTask.execute((Void) null);
     }
 
+    @Override
+    public void onStart()
+    {
+        super.onStart();
 
-    /**
-     * Represents an asynchronous room check task used to authenticate
-     * the user.
-     */
-    private class StatusTask extends AsyncTask<Void, Void, JSONObject> {
-        private final String mUrl;
-        private final String mMethod;
-        private String responseBody;
-
-        StatusTask(String url, String method)
+        if(!isStatusTimerRun && mStatusTask == null)
         {
-            mUrl = url;
-            mMethod = method;
+            mStatusTask = new StatusTask(mStatusUrl);
+            mStatusTask.execute((Void) null);
         }
 
-        @Override
-        protected JSONObject doInBackground(Void... params) {
-            // httpのコネクションを管理するクラス
-            HttpURLConnection con = null;
-            URL url = null;
-            int status = 0;
-            JSONObject jsonObj = null;
-            // InputStreamからbyteデータを取得するための変数
-            BufferedReader bufStr = null;
+        // happened by the app itself
+        React mApp = (React) this.getApplication();
+        if(mApp.getAppStatus() != React.AppStatus.RETURNED_TO_FOREGROUND)
+            return;
 
-            try {
-                // URLの作成
-                url = new URL(mUrl);
-                // 接続用HttpURLConnectionオブジェクト作成
-                con = (HttpURLConnection)url.openConnection();
-                // リクエストメソッドの設定
-                con.setRequestMethod(mMethod);
-                // リダイレクトを自動で許可しない設定
-                con.setInstanceFollowRedirects(false);
-                con.setRequestProperty("Content-length", "0");
-                con.setRequestProperty("Accept-Language", "jp");
-                con.setUseCaches(false);
-                con.setAllowUserInteraction(false);
-                con.setConnectTimeout(mRes.getInteger(R.integer.delay_http_connect));
-                con.setReadTimeout(mRes.getInteger(R.integer.delay_http_read));
-                con.connect();
-                status = con.getResponseCode();
+        // start by screen on
+        if(!mApp.getScreenStatus())
+            return;
 
-
-                if (HttpURLConnection.HTTP_OK == status)
-                {
-                    bufStr = new BufferedReader(new InputStreamReader(con.getInputStream()));
-                    responseBody = bufStr.readLine();
-                    jsonObj = new JSONObject(responseBody);
-                }
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (JSONException e) {
-                e.printStackTrace();
-            } finally {
-                if( con != null ){
-                    con.disconnect();
-                }
-            }
-
-            return jsonObj;
-        }
-
-        @Override
-        protected void onPostExecute(final JSONObject jsonObj) {
-            mStatusTask = null;
-            if(jsonObj == null)
-            {
-                AlertDialog.Builder alertQuitRoom = new AlertDialog.Builder(selfClass);
-                //ダイアログタイトルをセット
-                alertQuitRoom.setTitle(getString(R.string.title_quit_room));
-                //ダイアログメッセージをセット
-                alertQuitRoom.setMessage(getString(R.string.info_quit_room));
-                alertQuitRoom.setCancelable(false);
-                // ボタンがクリックされた時に呼び出されるコールバックリスナーを登録します
-                alertQuitRoom.setPositiveButton("OK",new DialogInterface.OnClickListener(){
-                    public void onClick(DialogInterface dialog, int which) {
-                        //退室処理
-                        mReactTask = new ReactTask(mRes.getInteger(R.integer.action_basic), mRes.getInteger(R.integer.type_room_out), mReactUrl, "POST");
-                        mReactTask.execute((Void) null);
-                        finish();
-                    }});
-                //ダイアログ表示
-                alertQuitRoom.show();
-            }
-            else
-            {
-                try {
-                    mNumConfused.setText(jsonObj.getString("num_confused"));
-                    mNumInteresting.setText(jsonObj.getString("num_interesting"));
-                    mNumBoring.setText(jsonObj.getString("num_boring"));
-                    mTimePast.setText(jsonObj.getString("timediff_room_in"));
-                }
-                catch (JSONException e) {
-                    e.printStackTrace();
-                }
-
-                //タイマースケジュール設定＆開始
-                //タイマーインスタンス生成
-                Timer reactTimer = new Timer();
-                //タスククラスインスタンス生成
-                reactTimer.schedule(new StatusTimerTask(), mRes.getInteger(R.integer.timer_require_status));
-            }
-        }
-
-        @Override
-        protected void onCancelled() {
-            mStatusTask = null;
-        }
+        Log.d(TAG, "onStart");
+        mReactTask = new ReactTask(mRes.getInteger(R.integer.action_basic), mRes.getInteger(R.integer.type_fore_in), mReactUrl);
+        mReactTask.execute((Void) null);
     }
 
-    private class ReactTimerTask extends TimerTask {
-
+    class ReactTimerTask implements Runnable
+    {
         private final View mView;
-
-
         ReactTimerTask ( View view )
         {
             mView = view;
         }
-
-        public void run() {
-            //ここに定周期で実行したい処理を記述します
-            mHandler.post( new Runnable() {
-                public void run() {
-                    //reactButton.setVisibility(View.VISIBLE);
-                    mView.setClickable(true);
-                    mView.getBackground().setColorFilter(null);
-                }
-            });
+        public void run()
+        {
+            mView.setClickable(true);
+            mView.getBackground().setColorFilter(null);
         }
     }
 
-    private class StatusTimerTask extends TimerTask {
-        public void run() {
-            if(mStatusTask != null)
+    // timer run function
+    private final Runnable statusTimeTask = new Runnable()
+    {
+        @SuppressLint("InlinedApi")
+        @Override
+        public void run()
+        {
+            Log.d(TAG, "onStatusTimerRun");
+            // flag
+            isStatusTimerRun = false;
+            if(mStatusTask == null) {
+                mStatusTask = new StatusTask(mStatusUrl);
+                mStatusTask.execute((Void) null);
+            }
+        }
+    };
+
+    /**
+     * Represents an asynchronous reaction send task
+     */
+    private class ReactTask extends AsyncTask<Void, Void, JSONObject>
+    {
+        private final String mUrl;
+        private final int mAction;
+        private final int mType;
+        private Integer mResponseCode = 0;
+        private boolean isTimeOut = false;
+
+        ReactTask(Integer action, Integer type, String url)
+        {
+            mAction = action;
+            mType = type;
+            mUrl = url;
+        }
+
+        @Override
+        protected JSONObject doInBackground(Void... params)
+        {
+            Log.d(TAG, "ReactTask Start");
+            HttpURLConnection con = null;
+            URL url;
+            JSONObject jsonOutput = null;
+            BufferedReader bufStr;
+
+            try
+            {
+                JSONObject jsonInput = new JSONObject();
+                jsonInput.put("action", mAction);
+                jsonInput.put("type", mType);
+
+                url = new URL(mUrl);
+                con = (HttpURLConnection) url.openConnection();
+                con.setRequestMethod("POST");
+                con.setInstanceFollowRedirects(false);
+                con.setRequestProperty("Accept-Language", "ja");
+                con.setRequestProperty("Accept", "application/json");
+                con.setRequestProperty("Content-Type", "application/json");
+                con.setUseCaches(false);
+                con.setAllowUserInteraction(false);
+                con.setConnectTimeout(getResources().getInteger(R.integer.delay_http_connect));
+                con.setReadTimeout(getResources().getInteger(R.integer.delay_http_read));
+                con.setDoInput(true);
+                con.setDoOutput(true);
+
+                OutputStream os = con.getOutputStream();
+                os.write(jsonInput.toString().getBytes());
+                os.flush();
+                os.close();
+
+                mResponseCode = con.getResponseCode();
+
+                if (HttpURLConnection.HTTP_OK == mResponseCode)
+                    bufStr = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                else
+                    bufStr = new BufferedReader(new InputStreamReader(con.getErrorStream()));
+                String body = bufStr.readLine();
+                jsonOutput = new JSONObject(body);
+            } catch (java.net.UnknownHostException|java.net.SocketTimeoutException e) {
+                isTimeOut = true;
+                e.printStackTrace();
+            } catch (JSONException | IOException e) {
+                e.printStackTrace();
+            } finally {
+                if (con != null)
+                    con.disconnect();
+            }
+            return jsonOutput;
+        }
+
+        @Override
+        protected void onPostExecute(final JSONObject result)
+        {
+            Log.d(TAG, "ReactTask finish");
+            mReactTask = null;
+
+            if(HttpURLConnection.HTTP_OK == mResponseCode)
+            {
+                if (mAction == getResources().getInteger(R.integer.action_reaction_anonymous) ||
+                        mAction == getResources().getInteger(R.integer.action_reaction_real_name))
+                {
+                    // calculate the click number
+                    Integer clickNum = Integer.parseInt(mClickNum.getText().toString()) + 1;
+                    mClickNum.setText(String.valueOf(clickNum));
+
+                    if(mStatusTask == null)
+                    {
+                        mStatusTimerHandler.removeCallbacks(statusTimeTask);
+                        mStatusTask = new StatusTask(mStatusUrl);
+                        mStatusTask.execute((Void) null);
+                    }
+                }
                 return;
-            mStatusTask = new StatusTask( mStatusUrl, "GET");
-            mStatusTask.execute((Void) null);
+            }
+
+            String errMsg = null;
+            if(isTimeOut)
+            {
+                errMsg = getString(R.string.error_timeout);
+            }
+            else if(result == null)
+            {
+                errMsg = getString(R.string.error_unknown);
+            }
+            else
+            {
+                try
+                {
+                    String type = result.getString("type");
+                    String message = result.getString("message");
+                    String[] info = type.split("\\.");
+                    if(info[0].equals("room")) {
+                        switch (info[1]) {
+                            case "already_room_in":
+                            case "already_room_out":
+                            case "already_fore_in":
+                            case "already_fore_out":
+                                break;
+                            default:
+                                errMsg = message;
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        errMsg = message;
+                    }
+                }
+                catch (JSONException e)
+                {
+                    errMsg = getString(R.string.error_unknown);
+                    e.printStackTrace();
+                }
+            }
+
+            if(!TextUtils.isEmpty(errMsg)) {
+                final LinearLayout layout = (LinearLayout) findViewById(R.id.root_layout);
+                Snackbar.make(layout, errMsg, Snackbar.LENGTH_LONG)
+                        .show();
+            }
+        }
+
+        @Override
+        protected void onCancelled() {mReactTask = null;}
+    }
+
+
+    /**
+     * Represents an asynchronous status check task
+     */
+    private class StatusTask extends AsyncTask<Void, Void, JSONObject>
+    {
+        private final String mUrl;
+        private Integer mResponseCode = 0;
+        private boolean isTimeOut = false;
+
+        StatusTask(String url)
+        {
+            mUrl = url;
+        }
+
+        @Override
+        protected JSONObject doInBackground(Void... params)
+        {
+            Log.d(TAG, "StatusTask Start");
+            HttpURLConnection con = null;
+            URL url;
+
+            JSONObject jsonOutput = null;
+            BufferedReader bufStr;
+
+            try
+            {
+                url = new URL(mUrl);
+                con = (HttpURLConnection)url.openConnection();
+                con.setRequestMethod("GET");
+                con.setInstanceFollowRedirects(false);
+                con.setRequestProperty("Content-Length", "0");
+                con.setRequestProperty("Accept-Language", "ja");
+                con.setRequestProperty("Accept", "application/json");
+                con.setRequestProperty("Content-Type", "application/json");
+                con.setUseCaches(false);
+                con.setAllowUserInteraction(false);
+                con.setConnectTimeout(getResources().getInteger(R.integer.delay_http_connect));
+                con.setReadTimeout(getResources().getInteger(R.integer.delay_http_read));
+                con.setDoInput(true);
+
+                con.connect();
+                mResponseCode = con.getResponseCode();
+
+                if (HttpURLConnection.HTTP_OK == mResponseCode)
+                    bufStr = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                else
+                    bufStr = new BufferedReader(new InputStreamReader(con.getErrorStream()));
+                String body = bufStr.readLine();
+                jsonOutput = new JSONObject(body);
+            } catch (java.net.UnknownHostException|java.net.SocketTimeoutException e) {
+                isTimeOut = true;
+                e.printStackTrace();
+            } catch (JSONException | IOException e) {
+                e.printStackTrace();
+            } finally {
+                if (con != null)
+                    con.disconnect();
+            }
+            return jsonOutput;
+        }
+
+        @Override
+        protected void onPostExecute(final JSONObject result)
+        {
+            Log.d(TAG, "StatusTask Finish");
+            mStatusTask = null;
+            boolean isStartTimer = isTimeOut;
+
+            if (HttpURLConnection.HTTP_OK == mResponseCode)
+            {
+                try
+                {
+                    mNumConfused.setText(result.getString("num_confused"));
+                    mNumInteresting.setText(result.getString("num_interesting"));
+                    mNumBoring.setText(result.getString("num_boring"));
+                    mTimePast.setText(result.getString("timediff_room_in"));
+                }
+                catch (JSONException e)
+                {
+                    e.printStackTrace();
+                }
+
+                isStartTimer = true;
+            }
+            else
+            {
+                String message = getString(R.string.error_unknown);
+                if (result != null)
+                {
+                    try
+                    {
+                        String type = result.getString("type");
+                        String[] info = type.split("\\.");
+                        if (info[0].equals("room") && info[1].equals("closed"))
+                            message = result.getString("message");
+                    } catch (JSONException e)
+                    {
+                        isStartTimer = true;
+                        e.printStackTrace();
+                    }
+                }
+
+                if(!isStartTimer) {
+                    AlertDialog.Builder alertQuitRoom = new AlertDialog.Builder(ReactionActivity.this);
+                    alertQuitRoom.setTitle(getString(R.string.title_quit_room));
+                    alertQuitRoom.setMessage(message + getString(R.string.info_quit_room));
+                    alertQuitRoom.setCancelable(false);
+
+                    alertQuitRoom.setPositiveButton(getString(R.string.action_ok), new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            // quit room
+                            mReactTask = new ReactTask(mRes.getInteger(R.integer.action_basic), mRes.getInteger(R.integer.type_room_out), mReactUrl);
+                            mReactTask.execute((Void) null);
+                            finish();
+                        }
+                    });
+                    //ダイアログ表示
+                    alertQuitRoom.show();
+                }
+            }
+
+            if(isStartTimer)
+            {
+                // start a new timer to get status
+                mStatusTimerHandler.postDelayed(statusTimeTask, mRes.getInteger(R.integer.timer_require_status));
+                Log.d(TAG, "StatusTimer Start");
+                // flag
+                isStatusTimerRun = true;
+            }
+        }
+
+        @Override
+        protected void onCancelled()
+        {
+            mStatusTask = null;
         }
     }
 }

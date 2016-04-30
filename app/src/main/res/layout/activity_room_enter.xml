@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/root_layout"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".RoomEnterActivity">
+    tools:context=".RoomEnterActivity"
+    android:background="@color/colorBack">
 
     <ProgressBar
         style="?android:attr/progressBarStyleLarge"
@@ -26,10 +28,11 @@
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="3">
+        android:layout_weight="3"
+        android:layout_margin="20dp">
 
         <EditText
-            android:id="@+id/roomKeyText"
+            android:id="@+id/room_key_text"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="20dp"
@@ -42,10 +45,12 @@
             android:maxLines="1"
             android:singleLine="true"
             android:hint="@string/hint_key_input"
-            android:gravity="center" />
+            android:gravity="center"
+            android:textColor="@android:color/white"
+            android:textColorHint="@android:color/white" />
 
         <Button
-            android:id="@+id/roomKeyButton"
+            android:id="@+id/room_key_button"
             style="?android:textAppearanceSmall"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

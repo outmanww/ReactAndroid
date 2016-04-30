@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/root_layout"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ReactionActivity">
+    tools:context=".ReactionActivity"
+    android:background="@drawable/lecture_bg">
 
     <Space
         android:layout_width="match_parent"
@@ -23,17 +25,19 @@
             android:layout_height="fill_parent"
             android:textAppearance="?android:attr/textAppearanceLarge"
             android:id="@+id/LectureName"
-            android:layout_weight="8"
+            android:layout_weight="6"
             android:gravity="center"
-            android:text="Lecture" />
+            android:text="Lecture"
+            android:textColor="@android:color/white" />
 
         <ImageButton
             android:id="@+id/MessageButton"
+            style="?android:textAppearanceSmall"
             android:layout_width="wrap_content"
             android:layout_height="fill_parent"
             android:src="@android:drawable/ic_dialog_email"
-            android:background="@android:color/holo_blue_dark"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:background="@drawable/roundedbutton" />
 
     </LinearLayout>
 
@@ -50,7 +54,8 @@
             android:text="Teacher Name"
             android:id="@+id/TeacherName"
             android:layout_weight="1"
-            android:gravity="center" />
+            android:gravity="center"
+            android:textColor="@android:color/white" />
 
         <TextView
             android:layout_width="match_parent"
@@ -59,7 +64,8 @@
             android:text="Friday 2"
             android:id="@+id/TimeSlot"
             android:layout_weight="1"
-            android:gravity="center" />
+            android:gravity="center"
+            android:textColor="@android:color/white" />
     </LinearLayout>
 
     <TextView
@@ -68,14 +74,14 @@
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:text="@string/text_anonymous"
         android:layout_weight="1"
-        android:gravity="center" />
+        android:gravity="center"
+        android:textColor="@android:color/white" />
 
     <LinearLayout
         android:orientation="horizontal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="10"
-        android:layout_margin="10dp">
+        android:layout_weight="10">
 
         <Space
             android:layout_width="wrap_content"
@@ -94,7 +100,8 @@
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:text="@string/text_time_past_from_room_in"
                 android:gravity="center|bottom"
-                android:layout_weight="1" />
+                android:layout_weight="1"
+                android:textColor="@android:color/white" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -103,7 +110,8 @@
                 android:text="0"
                 android:id="@+id/TimePast"
                 android:gravity="center"
-                android:layout_weight="1" />
+                android:layout_weight="1"
+                android:textColor="@android:color/white" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -111,7 +119,8 @@
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:text="@string/text_min"
                 android:gravity="center|top"
-                android:layout_weight="1" />
+                android:layout_weight="1"
+                android:textColor="@android:color/white" />
         </LinearLayout>
 
         <Space
@@ -131,7 +140,8 @@
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:text="@string/text_number_press"
                 android:gravity="center|bottom"
-                android:layout_weight="1" />
+                android:layout_weight="1"
+                android:textColor="@android:color/white" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -140,7 +150,8 @@
                 android:text="0"
                 android:id="@+id/ClickNum"
                 android:gravity="center"
-                android:layout_weight="1" />
+                android:layout_weight="1"
+                android:textColor="@android:color/white" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -148,7 +159,8 @@
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:text="@string/text_number"
                 android:gravity="center|top"
-                android:layout_weight="1" />
+                android:layout_weight="1"
+                android:textColor="@android:color/white" />
         </LinearLayout>
 
         <Space
@@ -163,14 +175,16 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_weight="10"
-        android:layout_margin="10dp"
-        android:baselineAligned="false">
+        android:baselineAligned="false"
+        android:layout_marginLeft="20dp"
+        android:layout_marginRight="20dp">
 
         <LinearLayout
             android:orientation="vertical"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:layout_weight="3" >
+            android:layout_weight="3"
+            android:baselineAligned="false">
 
             <TextView
                 android:layout_width="match_parent"
@@ -178,7 +192,8 @@
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:text="@string/text_confused"
                 android:gravity="center|bottom"
-                android:layout_weight="1" />
+                android:layout_weight="1"
+                android:textColor="@android:color/white" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -187,7 +202,8 @@
                 android:text="0"
                 android:id="@+id/NumConfused"
                 android:gravity="center"
-                android:layout_weight="1" />
+                android:layout_weight="1"
+                android:textColor="@android:color/white" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -195,7 +211,8 @@
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:text="@string/text_person_10_min"
                 android:gravity="center|top"
-                android:layout_weight="1" />
+                android:layout_weight="1"
+                android:textColor="@android:color/white" />
         </LinearLayout>
 
         <LinearLayout
@@ -210,7 +227,8 @@
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:text="@string/text_interesting"
                 android:gravity="center|bottom"
-                android:layout_weight="1" />
+                android:layout_weight="1"
+                android:textColor="@android:color/white" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -219,7 +237,8 @@
                 android:text="0"
                 android:id="@+id/NumInteresting"
                 android:gravity="center"
-                android:layout_weight="1" />
+                android:layout_weight="1"
+                android:textColor="@android:color/white" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -227,7 +246,8 @@
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:text="@string/text_person_10_min"
                 android:gravity="center|top"
-                android:layout_weight="1" />
+                android:layout_weight="1"
+                android:textColor="@android:color/white" />
         </LinearLayout>
 
         <LinearLayout
@@ -242,7 +262,8 @@
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:text="@string/text_boring"
                 android:gravity="center|bottom"
-                android:layout_weight="1" />
+                android:layout_weight="1"
+                android:textColor="@android:color/white" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -251,7 +272,8 @@
                 android:text="0"
                 android:id="@+id/NumBoring"
                 android:gravity="center"
-                android:layout_weight="1" />
+                android:layout_weight="1"
+                android:textColor="@android:color/white" />
 
             <TextView
                 android:layout_width="match_parent"
@@ -259,7 +281,8 @@
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:text="@string/text_person_10_min"
                 android:gravity="center|top"
-                android:layout_weight="1" />
+                android:layout_weight="1"
+                android:textColor="@android:color/white" />
         </LinearLayout>
     </LinearLayout>
 
@@ -267,8 +290,9 @@
         android:orientation="horizontal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="10"
-        android:layout_margin="10dp">
+        android:layout_weight="6"
+        android:layout_marginLeft="20dp"
+        android:layout_marginRight="20dp">
 
         <Button
             android:id="@+id/ConfusedButton"
@@ -277,9 +301,10 @@
             android:layout_height="match_parent"
             android:text="@string/text_confused"
             android:gravity="center"
-            android:layout_marginLeft="30dp"
-            android:layout_marginRight="10dp"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:clickable="true"
+            android:layout_marginLeft="15dp"
+            android:layout_marginRight="15dp" />
         <Button
             android:id="@+id/InterestingButton"
             style="?android:textAppearanceSmall"
@@ -287,9 +312,10 @@
             android:layout_height="match_parent"
             android:text="@string/text_interesting"
             android:gravity="center"
-            android:layout_marginLeft="20dp"
-            android:layout_marginRight="20dp"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:clickable="true"
+            android:layout_marginLeft="15dp"
+            android:layout_marginRight="15dp" />
         <Button
             android:id="@+id/BoringButton"
             style="?android:textAppearanceSmall"
@@ -297,14 +323,15 @@
             android:layout_height="match_parent"
             android:text="@string/text_boring"
             android:gravity="center"
-            android:layout_marginLeft="10dp"
-            android:layout_marginRight="30dp"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:clickable="true"
+            android:layout_marginLeft="15dp"
+            android:layout_marginRight="15dp" />
     </LinearLayout>
 
     <Space
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1" />
+        android:layout_weight="2" />
 
 </LinearLayout>

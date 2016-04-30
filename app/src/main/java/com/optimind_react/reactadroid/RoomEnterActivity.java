@@ -6,46 +6,47 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.location.LocationProvider;
 import android.provider.Settings;
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.AsyncTask;
 
 import android.os.Build;
 import android.os.Bundle;
-import android.text.InputType;
 import android.text.TextUtils;
 import android.text.method.DigitsKeyListener;
 import android.text.method.KeyListener;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Calendar;
 
-public class RoomEnterActivity extends AppCompatActivity {
+public class RoomEnterActivity extends AppCompatActivity
+{
+    // tag for debug
+    private final static String TAG = RoomEnterActivity.class.getSimpleName();
+    
     private LocationManager mLocationManager;
 
     private RoomConfirmTask mRoomConfirmTask = null;
@@ -55,18 +56,16 @@ public class RoomEnterActivity extends AppCompatActivity {
     private EditText mRoomKeyView;
     private View mProgressView;
     private View mKeyAreaView;
-    private RoomEnterActivity selfClass = this;
 
     // http result
-    private String teacherName;
-    private String lectureName;
-    private String timeSlot;
-    private String roomKey;
+    private String mTeacherName;
+    private String mLectureName;
+    private String mTimeSlot;
+    private String mRoomKey;
     private String mApiToken;
 
-
-    private final LocationListener gpsLocationListener =new LocationListener(){
-
+    private final LocationListener gpsLocationListener = new LocationListener()
+    {
         @Override
         public void onStatusChanged(String provider, int status, Bundle extras) {}
 
@@ -77,20 +76,25 @@ public class RoomEnterActivity extends AppCompatActivity {
         public void onProviderDisabled(String provider) {}
 
         @Override
-        public void onLocationChanged(Location location) {
+        public void onLocationChanged(Location location)
+        {
             if(location == null)
                 return;
-            try{
+
+            try
+            {
                 mLocationManager.removeUpdates(networkLocationListener);
                 mLocationManager.removeUpdates(gpsLocationListener);
                 startRoomInTask(location.getLatitude(), location.getLongitude());
             }
-            catch (SecurityException e) {
-                e.printStackTrace();}
+            catch (SecurityException e)
+            {
+                e.printStackTrace();
+            }
         }
     };
-    private final LocationListener networkLocationListener = new LocationListener(){
-
+    private final LocationListener networkLocationListener = new LocationListener()
+    {
         @Override
         public void onStatusChanged(String provider, int status, Bundle extras){}
 
@@ -101,26 +105,31 @@ public class RoomEnterActivity extends AppCompatActivity {
         public void onProviderDisabled(String provider) {}
 
         @Override
-        public void onLocationChanged(Location location) {
+        public void onLocationChanged(Location location)
+        {
             if(location == null)
                 return;
-            try{
+            try
+            {
                 mLocationManager.removeUpdates(networkLocationListener);
                 mLocationManager.removeUpdates(gpsLocationListener);
                 startRoomInTask(location.getLatitude(), location.getLongitude());
             }
-            catch (SecurityException e) {
-                e.printStackTrace();}
+            catch (SecurityException e)
+            {
+                e.printStackTrace();
+            }
         }
     };
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState)
+    {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_room_enter);
 
         // Set up room in components.
-        mRoomKeyView = (EditText) findViewById(R.id.roomKeyText);
+        mRoomKeyView = (EditText) findViewById(R.id.room_key_text);
 
         KeyListener keyListener = DigitsKeyListener.getInstance("1234567890");
         mRoomKeyView.setKeyListener(keyListener);
@@ -135,7 +144,7 @@ public class RoomEnterActivity extends AppCompatActivity {
             }
         });
 
-        Button mEmailSignInButton = (Button) findViewById(R.id.roomKeyButton);
+        Button mEmailSignInButton = (Button) findViewById(R.id.room_key_button);
         mEmailSignInButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -148,6 +157,7 @@ public class RoomEnterActivity extends AppCompatActivity {
 
         React mApp = (React) this.getApplication();
         mApiToken = mApp.getApiToken();
+
         mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
     }
 
@@ -157,7 +167,8 @@ public class RoomEnterActivity extends AppCompatActivity {
      * errors are presented and no actual roomin attempt is made.
      */
     private void attemptRoomIn() {
-        if (mRoomConfirmTask != null) {
+        if (mRoomConfirmTask != null)
+        {
             return;
         }
 
@@ -165,32 +176,43 @@ public class RoomEnterActivity extends AppCompatActivity {
         mRoomKeyView.setError(null);
 
         // Store values at the time of the roomin attempt.
-        roomKey = mRoomKeyView.getText().toString();
+        mRoomKey = mRoomKeyView.getText().toString();
 
         boolean cancel = false;
 
-        // Check for a valid password, if the user entered one.
-        if (TextUtils.isEmpty(roomKey) || !isKeyValid(roomKey)) {
+        // Check for a valid room key, if the user entered one.
+        if (TextUtils.isEmpty(mRoomKey))
+        {
+            mRoomKeyView.setError(getString(R.string.error_field_required));
+            cancel = true;
+        }
+        else if(!isKeyValid(mRoomKey))
+        {
             mRoomKeyView.setError(getString(R.string.error_invalid_room_key));
             cancel = true;
         }
 
-        if (cancel) {
+        if (cancel)
+        {
             // There was an error; don't attempt roomin and focus the first
             // form field with an error.
             mRoomKeyView.requestFocus();
-        } else {
+        }
+        else
+        {
             // Show a progress spinner, and kick off a background task to
             // perform the user roomin attempt.
             showProgress(true);
-            final String url = getString(R.string.domain) + "/student/rooms/"+roomKey+"?api_token="+mApiToken;
-            mRoomConfirmTask = new RoomConfirmTask( url, "GET");
+            final String url = getString(R.string.domain) + "/student/rooms/"+mRoomKey+"?api_token="+mApiToken;
+            mRoomConfirmTask = new RoomConfirmTask(url);
             mRoomConfirmTask.execute((Void) null);
         }
     }
-        private boolean isKeyValid(String key) {
-            return (key.length() == 6);
-        }
+
+    private boolean isKeyValid(String key)
+    {
+        return (key.length() == 6);
+    }
 
     /**
      * Shows the progress UI and hides the roomin form.
@@ -200,7 +222,8 @@ public class RoomEnterActivity extends AppCompatActivity {
         // On Honeycomb MR2 we have the ViewPropertyAnimator APIs, which allow
         // for very easy animations. If available, use these APIs to fade-in
         // the progress spinner.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2)
+        {
             int shortAnimTime = getResources().getInteger(android.R.integer.config_shortAnimTime);
 
             mKeyAreaView.setVisibility(show ? View.GONE : View.VISIBLE);
@@ -220,7 +243,9 @@ public class RoomEnterActivity extends AppCompatActivity {
                     mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
                 }
             });
-        } else {
+        }
+        else
+        {
             // The ViewPropertyAnimator APIs are not available, so simply show
             // and hide the relevant UI components.
             mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
@@ -232,130 +257,183 @@ public class RoomEnterActivity extends AppCompatActivity {
      * Represents an asynchronous room check task used to authenticate
      * the user.
      */
-    public class RoomConfirmTask extends AsyncTask<Void, Void, Integer> {
-
+    public class RoomConfirmTask extends AsyncTask<Void, Void, JSONObject>
+    {
         private final String mUrl;
-        private final String mMethod;
-        private String responseBody;
+        private Integer mResponseCode = 0;
+        private  boolean isTimeOut = false;
 
-        RoomConfirmTask(String url, String method)
+        RoomConfirmTask(String url)
         {
             mUrl = url;
-            mMethod = method;
         }
 
         @Override
-        protected Integer doInBackground(Void... params) {
-            // httpのコネクションを管理するクラス
+        protected JSONObject doInBackground(Void... params)
+        {
+            Log.d(TAG, "RoomConfirmTask Start");
             HttpURLConnection con = null;
-            URL url = null;
-            int status = 0;
-            // InputStreamからbyteデータを取得するための変数
-            BufferedReader bufStr = null;
+            URL url;
+
+            JSONObject jsonOutput = null;
+            BufferedReader bufStr;
 
             try {
-                // URLの作成
                 url = new URL(mUrl);
-                // 接続用HttpURLConnectionオブジェクト作成
                 con = (HttpURLConnection)url.openConnection();
-                // リクエストメソッドの設定
-                con.setRequestMethod(mMethod);
-                // リダイレクトを自動で許可しない設定
+                con.setRequestMethod("GET");
                 con.setInstanceFollowRedirects(false);
-                con.setRequestProperty("Content-length", "0");
-                con.setRequestProperty("Accept-Language", "jp");
+                con.setRequestProperty("Content-Length", "0");
+                con.setRequestProperty("Accept-Language", "ja");
+                con.setRequestProperty("Accept", "application/json");
+                con.setRequestProperty("Content-Type", "application/json");
                 con.setUseCaches(false);
                 con.setAllowUserInteraction(false);
                 con.setConnectTimeout(getResources().getInteger(R.integer.delay_http_connect));
                 con.setReadTimeout(getResources().getInteger(R.integer.delay_http_read));
+                con.setDoInput(true);
+
                 con.connect();
+                mResponseCode = con.getResponseCode();
 
-                status = con.getResponseCode();
-
-                bufStr = new BufferedReader(new InputStreamReader(con.getInputStream()));
-
-                responseBody = bufStr.readLine();
-                if (HttpURLConnection.HTTP_OK == status)
-                {
-                    JSONObject tokenJson = new JSONObject(responseBody);
-                    teacherName = tokenJson.getString("teacher");
-                    lectureName = tokenJson.getString("lecture");
-                    timeSlot = tokenJson.getString("timeslot");
-                }
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (JSONException e) {
-                e.printStackTrace();
-            } finally {
-                if( con != null ){
-                    con.disconnect();
-                }
+                mResponseCode = con.getResponseCode();
+                if (HttpURLConnection.HTTP_OK == mResponseCode)
+                    bufStr = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                else
+                    bufStr = new BufferedReader(new InputStreamReader(con.getErrorStream()));
+                String body = bufStr.readLine();
+                jsonOutput = new JSONObject(body);
             }
-
-            return status;
+            catch (java.net.UnknownHostException|java.net.SocketTimeoutException e) {
+                isTimeOut = true;
+                e.printStackTrace();
+            }
+            catch (JSONException|IOException e)
+            {
+                e.printStackTrace();
+            }
+            finally
+            {
+                if( con != null )
+                    con.disconnect();
+            }
+            return jsonOutput;
         }
 
         @Override
-        protected void onPostExecute(final Integer status) {
+        protected void onPostExecute(final JSONObject result)
+        {
+            Log.d(TAG, "RoomConfirmTask Finish");
+
             mRoomConfirmTask = null;
-            if (HttpURLConnection.HTTP_OK == status)
+            showProgress(false);
+
+            if (HttpURLConnection.HTTP_OK == mResponseCode)
             {
+                try
+                {
+                    mTeacherName = result.getString("teacher");
+                    mLectureName = result.getString("lecture");
+                    mTimeSlot = result.getString("timeslot");
+                }catch (JSONException e)
+                {
+                    e.printStackTrace();
+                }
 
-                AlertDialog.Builder confirmAlert = new AlertDialog.Builder(selfClass);
-                //ダイアログタイトルをセット
+                AlertDialog.Builder confirmAlert = new AlertDialog.Builder(RoomEnterActivity.this);
                 confirmAlert.setTitle(getString(R.string.text_confirm_room));
-                //ダイアログメッセージをセット
-                confirmAlert.setMessage(teacherName+"\n"+lectureName+"\n"+timeSlot);
+                confirmAlert.setMessage(mTeacherName+"\n"+mLectureName+"\n"+mTimeSlot);
 
-                // アラートダイアログのボタンがクリックされた時に呼び出されるコールバックリスナーを登録します
-                confirmAlert.setPositiveButton(getString(R.string.action_cancel), new DialogInterface.OnClickListener(){
+                confirmAlert.setPositiveButton(getString(R.string.action_room_in), new DialogInterface.OnClickListener(){
                     public void onClick(DialogInterface dialog, int which) {
-                        showProgress(false);
-                    }});
-
-                // アラートダイアログのボタンがクリックされた時に呼び出されるコールバックリスナーを登録します
-                confirmAlert.setNegativeButton(getString(R.string.action_room_in), new DialogInterface.OnClickListener(){
-                    public void onClick(DialogInterface dialog, int which) {
-                        final boolean gpsEnabled = mLocationManager.isProviderEnabled(mLocationManager.GPS_PROVIDER);
-                        final boolean networkEnabled = mLocationManager.isProviderEnabled(mLocationManager.NETWORK_PROVIDER);
-                        if (!gpsEnabled && !networkEnabled) {
-                            // GPSを設定するように促す
+                        final boolean gpsEnabled = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+                        final boolean networkEnabled = mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+                        if (!gpsEnabled && !networkEnabled)
+                        {
+                            // Enable local setting for GPS
                             enableLocationSettings();
                             return;
                         }
-                        try {
-                            Location location = mLocationManager.getLastKnownLocation(mLocationManager.GPS_PROVIDER);
+
+                        try
+                        {
+                            Location location = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+
                             // check if the location information is new in 1 minutes
-                            if (location != null && location.getTime() > Calendar.getInstance().getTimeInMillis() - 1 * 60 * 1000) {
+                            if (location != null && location.getTime() > Calendar.getInstance().getTimeInMillis() - 60 * 1000)
+                            {
                                 startRoomInTask(location.getLatitude(), location.getLongitude());
-                            } else {
+                            }
+                            else
+                            {
                                 if(gpsEnabled)
                                     mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, gpsLocationListener);
                                 else
-                                    mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, networkLocationListener);
-                            }}
-                        catch (SecurityException e) {
-                            e.printStackTrace();}
+                                    mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, networkLocationListener);
+                                showProgress(true);
+                            }
                         }
-                    });
-                //ダイアログ表示
+                        catch (SecurityException e)
+                        {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+
+                confirmAlert.setNegativeButton(getString(R.string.action_cancel), new DialogInterface.OnClickListener(){
+                    public void onClick(DialogInterface dialog, int which) {
+                    }});
+
+                // show dialog
                 confirmAlert.show();
+                return;
+            }
+
+            String errMsg;
+            if(isTimeOut)
+            {
+                errMsg = getString(R.string.error_timeout);
+            }
+            else if(result == null)
+            {
+                errMsg = getString(R.string.error_unknown);
             }
             else
             {
-                showProgress(false);
-                if (400 == status && responseBody != null)
-                    mRoomKeyView.setError(responseBody);
-                else
-                    mRoomKeyView.setError(getString(R.string.error_room_key));
-                mRoomKeyView.requestFocus();
+                try
+                {
+                    String type = result.getString("type");
+                    String message = result.getString("message");
+                    String[] info = type.split("\\.");
+                    if (info[0].equals("room"))
+                    {
+                        mRoomKeyView.setError(message);
+                        mRoomKeyView.requestFocus();
+                        return;
+                    }
+                    errMsg = message;
+                }
+                catch (JSONException e)
+                {
+                    errMsg = getString(R.string.error_unknown);
+                    e.printStackTrace();
+                }
             }
+
+            final LinearLayout layout = (LinearLayout) findViewById(R.id.root_layout);
+            Snackbar.make(layout, errMsg, Snackbar.LENGTH_LONG)
+                    .setAction(getString(R.string.text_resend), new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            attemptRoomIn();
+                        }
+                    })
+                    .show();
         }
 
         @Override
-        protected void onCancelled() {
+        protected void onCancelled()
+        {
             mRoomConfirmTask = null;
             showProgress(false);
         }
@@ -363,121 +441,157 @@ public class RoomEnterActivity extends AppCompatActivity {
 
     private void startRoomInTask(double geoLat, double geoLong)
     {
-        final String roomInUrl = getString(R.string.domain) + "/student/rooms/" + roomKey + "?api_token=" + mApiToken;
-        mRoomInTask = new RoomInTask(geoLat, geoLong, roomInUrl, "POST");
+        final String roomInUrl = getString(R.string.domain) + "/student/rooms/" + mRoomKey + "?api_token=" + mApiToken;
+        mRoomInTask = new RoomInTask(geoLat, geoLong, roomInUrl);
         mRoomInTask.execute((Void) null);
     }
 
     /**
-     * Represents an asynchronous room check task used to authenticate
+     * Represents an asynchronous room in task used to authenticate
      * the user.
      */
-    private class RoomInTask extends AsyncTask<Void, Void, Integer> {
+    private class RoomInTask extends AsyncTask<Void, Void, JSONObject>
+    {
         private final String mUrl;
-        private final String mMethod;
         private final double mLat;
         private final double mLong;
-        private String responseBody;
+        private Integer mResponseCode = 0;
+        private  boolean isTimeOut = false;
 
-        RoomInTask(double geoLat, double geoLong, String url, String method)
+        RoomInTask(double geoLat, double geoLong, String url)
         {
             mLat = geoLat;
             mLong = geoLong;
             mUrl = url;
-            mMethod = method;
         }
 
         @Override
-        protected Integer doInBackground(Void... params) {
-            // httpのコネクションを管理するクラス
+        protected JSONObject doInBackground(Void... params)
+        {
+            Log.d(TAG, "RoomInTask Start");
             HttpURLConnection con = null;
-            URL url = null;
-            int status = 0;
-            JSONObject jsonObj = new JSONObject();
-            // InputStreamからbyteデータを取得するための変数
-            BufferedReader bufStr = null;
+            URL url;
 
-            try {
-                jsonObj.put("action", 1);
-                jsonObj.put("type", 1);
-                jsonObj.put("geo_lat", mLat);
-                jsonObj.put("geo_long", mLong);
+            JSONObject jsonOutput = null;
+            BufferedReader bufStr;
 
-                // URLの作成
+            try
+            {
+                JSONObject jsonInput = new JSONObject();
+                Resources res = getResources();
+                jsonInput.put("action", res.getInteger(R.integer.action_basic));
+                jsonInput.put("type", res.getInteger(R.integer.type_room_in));
+                jsonInput.put("geo_lat", mLat);
+                jsonInput.put("geo_long", mLong);
+
                 url = new URL(mUrl);
-                // 接続用HttpURLConnectionオブジェクト作成
-                con = (HttpURLConnection)url.openConnection();
-                // リクエストメソッドの設定
-                con.setRequestMethod(mMethod);
-                // リダイレクトを自動で許可しない設定
+                con = (HttpURLConnection) url.openConnection();
+                con.setRequestMethod("POST");
                 con.setInstanceFollowRedirects(false);
-                con.setRequestProperty("Accept-Language", "jp");
+                con.setRequestProperty("Accept-Language", "ja");
                 con.setRequestProperty("Accept", "application/json");
                 con.setRequestProperty("Content-Type", "application/json");
                 con.setUseCaches(false);
                 con.setAllowUserInteraction(false);
                 con.setConnectTimeout(getResources().getInteger(R.integer.delay_http_connect));
                 con.setReadTimeout(getResources().getInteger(R.integer.delay_http_read));
-
+                con.setDoInput(true);
                 con.setDoOutput(true);
+
                 OutputStream os = con.getOutputStream();
-                os.write(jsonObj.toString().getBytes());
+                os.write(jsonInput.toString().getBytes());
                 os.flush();
                 os.close();
 
-                status = con.getResponseCode();
-
-                bufStr = new BufferedReader(new InputStreamReader(con.getInputStream()));
-                responseBody = bufStr.readLine();
-            } catch (MalformedURLException e) {
+                mResponseCode = con.getResponseCode();
+                if (HttpURLConnection.HTTP_OK == mResponseCode)
+                    bufStr = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                else
+                    bufStr = new BufferedReader(new InputStreamReader(con.getErrorStream()));
+                String body = bufStr.readLine();
+                jsonOutput = new JSONObject(body);
+            } catch (java.net.UnknownHostException|java.net.SocketTimeoutException e) {
+                isTimeOut = true;
                 e.printStackTrace();
-            } catch (IOException e) {
+            } catch (JSONException | IOException e) {
                 e.printStackTrace();
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-            finally {
-                if( con != null ){
+            } finally {
+                if (con != null)
                     con.disconnect();
+            }
+            return jsonOutput;
+        }
+
+        @Override
+        protected void onPostExecute(final JSONObject result)
+        {
+            Log.d(TAG, "RoomInTask Finish");
+            mRoomInTask = null;
+            showProgress(false);
+
+            String errMsg = null;
+
+            if (HttpURLConnection.HTTP_OK == mResponseCode)
+            {
+                Intent intent = new Intent(RoomEnterActivity.this, ReactionActivity.class);
+                intent.putExtra("ROOM_KEY", mRoomKey);
+                intent.putExtra("TEACHER_NAME", mTeacherName);
+                intent.putExtra("LECTURE_NAME", mLectureName);
+                intent.putExtra("TIME_SLOT", mTimeSlot);
+                startActivity(intent);
+                return;
+            }
+
+            if(isTimeOut)
+            {
+                errMsg = getString(R.string.error_timeout);
+            }
+            else if(result == null)
+            {
+                errMsg = getString(R.string.error_unknown);
+            }
+            else {
+                try {
+                    String type = result.getString("type");
+                    String message = result.getString("message");
+                    String[] info = type.split("\\.");
+                    if (info[0].equals("room")) {
+                        if (info[1].equals("already_room_in")) {
+                            Intent intent = new Intent(RoomEnterActivity.this, ReactionActivity.class);
+                            intent.putExtra("ROOM_KEY", mRoomKey);
+                            intent.putExtra("TEACHER_NAME", mTeacherName);
+                            intent.putExtra("LECTURE_NAME", mLectureName);
+                            intent.putExtra("TIME_SLOT", mTimeSlot);
+                            startActivity(intent);
+                            return;
+                        }
+                    }
+                    mRoomKeyView.setError(message);
+                    mRoomKeyView.requestFocus();
+                } catch (JSONException | NullPointerException e) {
+                    errMsg = getString(R.string.error_unknown);
+                    e.printStackTrace();
                 }
             }
 
-            return status;
-        }
-
-        @Override
-        protected void onPostExecute(final Integer status) {
-            mRoomInTask = null;
-            showProgress(false);
-            if (HttpURLConnection.HTTP_OK == status)
+            if(!TextUtils.isEmpty(errMsg))
             {
-
-                Intent intent = new Intent(selfClass, ReactionActivity.class);
-                intent.putExtra("ROOM_KEY", roomKey);
-                intent.putExtra("TEACHER_NAME", teacherName);
-                intent.putExtra("LECTURE_NAME", lectureName);
-                intent.putExtra("TIME_SLOT", timeSlot);
-                startActivity(intent);
-            }
-            else
-            {
-                showProgress(false);
-                if (400 == status)
-                    mRoomKeyView.setError(responseBody);
-                else
-                    mRoomKeyView.setError(getString(R.string.error_closed_room));
-                mRoomKeyView.requestFocus();
+                final LinearLayout layout = (LinearLayout) findViewById(R.id.root_layout);
+                Snackbar.make(layout, errMsg, Snackbar.LENGTH_LONG)
+                        .show();
             }
         }
 
         @Override
-        protected void onCancelled() {
+        protected void onCancelled()
+        {
             mRoomInTask = null;
             showProgress(false);
         }
     }
 
-    private void enableLocationSettings() {
+    private void enableLocationSettings()
+    {
         Intent settingsIntent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
         startActivity(settingsIntent);
     }

@@ -13,6 +13,7 @@
     <string name="prompt_family_name">姓名</string>
     <string name="prompt_given_name">名前</string>
 
+    <string name="action_ok">OK</string>
     <string name="action_cancel">キャンセル</string>
     <string name="action_sign_in">ログイン</string>
     <string name="action_room_out">退室</string>
@@ -21,25 +22,29 @@
     <string name="action_sign_up_short">登録</string>
 
     <string name="error_invalid_email">正しいメールアドレスを入力してください</string>
-    <string name="error_invalid_password">パスワードを6桁以上にしてください</string>
+    <string name="error_invalid_password">6桁以上の英数字で入力してください</string>
     <string name="error_incorrect_password">パスワードが正しくない</string>
     <string name="error_different_password">パスワードが一致しない</string>
     <string name="error_room_key">ルームキーを再確認してください</string>
     <string name="error_invalid_room_key">6桁の数字を入力してください</string>
     <string name="error_field_required">情報を入力してください</string>
-    <string name="error_reset_password">"パスワードのリセットができませんでした"</string>
-    <string name="error_gps_needed">"入室するにはGPS機能をonにする必要がある"</string>
-    <string name="error_closed_room">"入力したルームがすでに終了しました．"</string>
-    <string name="error_empty_message">"入力してください"</string>
+    <string name="error_reset_password">パスワードのリセットができませんでした</string>
+    <string name="error_gps_needed">入室するにはGPS機能をonにする必要がある</string>
+    <string name="error_closed_room">入力したルームがすでに終了しました．</string>
+    <string name="error_empty_message">入力してください</string>
+    <string name="error_unknown">エラーが発生しました．</string>
+    <string name="error_timeout">通信障害が発生しました．</string>
 
 
-    <string name="permission_rationale">"Email情報を取得するために連絡帳への承認が必要"</string>
-    <string name="dialog_password_reset">"パスワードリセットメールをお送り致しました．メールを確認してください"</string>
+    <string name="permission_rationale">Email情報を取得するために連絡帳への承認が必要</string>
+    <string name="dialog_password_reset">パスワードリセットメールをお送り致しました．メールを確認してください</string>
     <string name="button_OK_string">OK</string>
     <string name="button_register_string">新規登録</string>
     <string name="button_return_string">戻る</string>
     <string name="hint_key_input">ルームキーを入力してください</string>
-    <string name="hint_message">「質問」「感想」「その他」のタグを選択し、150文字以内でメッセージを入力してください。教員に直接送信されます。また、返信は講義を通して行われます。差出人は匿名の場合(By 匿名)、実名の場合(By 文章次郎)のように文末に記載をお願い致します。\n(By Re:act 管理人)</string>
+    <string name="hint_message_question">「ここが少しわからない」のような質問を入力してください。教員に直接送信されます「150文字以内」。</string>
+    <string name="hint_message_feeling">「楽しかった！」のような感想を入力してください。教員に直接送信されます「150文字以内」。</string>
+    <string name="hint_message_others">「午後，相談に行きたいです．」のようなメッセージを入力してください。教員に直接送信されます「150文字以内」。</string>
     <string name="dummy_button">Dummy Button</string>
     <string name="dummy_content">DUMMY\nCONTENT</string>
     <string name="room_key">ROOM_KEY</string>
@@ -53,11 +58,13 @@
     <string name="section_format">Hello World from section: %1$d</string>
     <string name="action_settings">Settings</string>
     <string name="re_act">Re:act</string>
+    <string name="text_home_sub_title">講義 x (集中+反応) = ???</string>
     <string name="text_anonymous">*反応は匿名で送信されます</string>
     <string name="text_time_past_from_room_in">入室経過</string>
     <string name="text_min">min</string>
     <string name="text_number_press">反応回数</string>
     <string name="text_number">回</string>
+    <string name="text_resend">再送信</string>
     <string name="text_person_10_min">人/10min</string>
     <string name="text_confused">分からん</string>
     <string name="text_interesting">いいね</string>
@@ -67,11 +74,16 @@
     <string name="tab_feeling">感想</string>
     <string name="tab_others">その他</string>
 
-    <string name="title_quit_room">確認</string>
+    <string name="title_quit_room">退室確認</string>
+    <string name="title_find_pwd">パスワード再発行</string>
+    <string name="text_input_email">登録したEmailを入力してください</string>
     <string name="title_finish_message_task">送信完了</string>
     <string name="text_quit_room">退室してよろしいですか</string>
-    <string name="info_quit_room">このルームにすでに終了したか接続できないかのため，退室処理が行います</string>
+    <string name="info_quit_room">退室処理が行います</string>
     <string name="text_send">送信</string>
     <string name="title_activity_main">MainActivity</string>
+    <string name="text_anonymous_short">匿名</string>
+    <string name="lecture_button">lection button</string>
+    <string name="text_lecture">Lecture</string>
 
 </resources>

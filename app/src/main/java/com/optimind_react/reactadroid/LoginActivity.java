@@ -3,33 +3,25 @@ package com.optimind_react.reactadroid;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
-import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.support.annotation.NonNull;
+import android.content.DialogInterface;
 import android.support.design.widget.Snackbar;
+import android.support.v7.app.AlertDialog;
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
-import android.app.LoaderManager.LoaderCallbacks;
-
-import android.content.CursorLoader;
-import android.content.Loader;
-import android.database.Cursor;
-import android.net.Uri;
 import android.os.AsyncTask;
 
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.ContactsContract;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.inputmethod.EditorInfo;
-import android.widget.ArrayAdapter;
-import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -39,43 +31,38 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-
-import static android.Manifest.permission.READ_CONTACTS;
 
 /**
  * A login screen that offers login via email/password.
  */
-public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<Cursor>{
+public class LoginActivity extends AppCompatActivity
+{
+    // tag for debug
+    private final static String TAG = LoginActivity.class.getSimpleName();
 
-    /**
-     * Id to identity READ_CONTACTS permission request.
-     */
-    private static final int REQUEST_READ_CONTACTS = 0;
     /**
      * Keep track of the login task to ensure we can cancel it if requested.
      */
-    private UserLoginTask mAuthTask = null;
+    private LoginTask mLoginTask = null;
+    private ResetPasswordTask mResetPasswordTask = null;
 
     // UI references.
-    private AutoCompleteTextView mEmailView;
+    private EditText mEmailView;
     private EditText mPasswordView;
     private View mProgressView;
     private View mLoginFormView;
-    private LoginActivity selfClass = this;
+    private AlertDialog mForgetPwdDialog;
+    private EditText mForgotPwdEmailInputView;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState)
+    {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
         // Set up the login form.
-        mEmailView = (AutoCompleteTextView) findViewById(R.id.email);
-        populateAutoComplete();
-
+        mEmailView = (EditText) findViewById(R.id.email);
         mPasswordView = (EditText) findViewById(R.id.password);
         mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
@@ -100,72 +87,67 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         mRegisterText.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(selfClass, RegisterActivity.class);
+                Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
                 startActivity(intent);
             }
         });
+
+        mForgotPwdEmailInputView = new EditText(LoginActivity.this);
+        mForgotPwdEmailInputView.setText(mEmailView.getText().toString());
+        mForgotPwdEmailInputView.setSingleLine();
+        mForgotPwdEmailInputView.setImeOptions(EditorInfo.IME_ACTION_SEND);
+        mForgotPwdEmailInputView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
+                if (id == EditorInfo.IME_ACTION_SEND || id == EditorInfo.IME_NULL) {
+                    boolean result = attemptResetPwd(mForgotPwdEmailInputView.getText().toString());
+                    if(result)
+                        mForgetPwdDialog.dismiss();
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(LoginActivity.this);
+        mForgetPwdDialog = builder.create();
+        mForgetPwdDialog.setIcon(android.R.drawable.ic_dialog_info);
+        mForgetPwdDialog.setTitle(getString(R.string.title_find_pwd));
+        mForgetPwdDialog.setMessage(getString(R.string.text_input_email));
+        mForgetPwdDialog.setView(mForgotPwdEmailInputView);
+        mForgetPwdDialog.setButton(DialogInterface.BUTTON_POSITIVE, getString(R.string.action_ok), new DialogInterface.OnClickListener(){
+            public void onClick(DialogInterface dialog, int which) {
+            }});
+        mForgetPwdDialog.setButton(DialogInterface.BUTTON_NEGATIVE, getString(R.string.action_cancel), new DialogInterface.OnClickListener(){
+            public void onClick(DialogInterface dialog, int which) {
+            }});
 
         TextView mForgetPwdText = (TextView) findViewById(R.id.forget_pwd_text);
         mForgetPwdText.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                boolean rst = attemptResetPwd();
-                if(rst)
-                    Toast.makeText(selfClass, R.string.dialog_password_reset, Toast.LENGTH_LONG).show();
-                else
-                    Toast.makeText(selfClass, R.string.error_reset_password, Toast.LENGTH_LONG).show();
+                mForgetPwdDialog.show();
+
+                mForgetPwdDialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener()
+                {
+                    @Override
+                    public void onClick(View dialog)
+                    {
+                        boolean rst = attemptResetPwd(mForgotPwdEmailInputView.getText().toString());
+                        if(rst)
+                            mForgetPwdDialog.dismiss();
+                    }});
+
+                mForgotPwdEmailInputView.requestFocus();
+                mForgotPwdEmailInputView.setText(mEmailView.getText().toString());
             }
         });
 
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
 
-        React mApp = (React) selfClass.getApplication();
-        mEmailView.setText(mApp.getEmail());
-        mPasswordView.setText(mApp.getPassword());
-    }
-
-    private void populateAutoComplete() {
-        if (!mayRequestContacts()) {
-            return;
-        }
-
-        getLoaderManager().initLoader(0, null, this);
-    }
-
-    private boolean mayRequestContacts() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            return true;
-        }
-        if (checkSelfPermission(READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
-            return true;
-        }
-        if (shouldShowRequestPermissionRationale(READ_CONTACTS)) {
-            Snackbar.make(mEmailView, R.string.permission_rationale, Snackbar.LENGTH_INDEFINITE)
-                    .setAction(android.R.string.ok, new View.OnClickListener() {
-                        @Override
-                        @TargetApi(Build.VERSION_CODES.M)
-                        public void onClick(View v) {
-                            requestPermissions(new String[]{READ_CONTACTS}, REQUEST_READ_CONTACTS);
-                        }
-                    });
-        } else {
-            requestPermissions(new String[]{READ_CONTACTS}, REQUEST_READ_CONTACTS);
-        }
-        return false;
-    }
-
-    /**
-     * Callback received when a permissions request has been completed.
-     */
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
-        if (requestCode == REQUEST_READ_CONTACTS) {
-            if (grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                populateAutoComplete();
-            }
-        }
+        React app = (React) this.getApplication();
+        mEmailView.setText(app.getEmail());
     }
 
 
@@ -174,10 +156,10 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
      * If there are form errors (invalid email, missing fields, etc.), the
      * errors are presented and no actual login attempt is made.
      */
-    private void attemptLogin() {
-        if (mAuthTask != null) {
+    private void attemptLogin()
+    {
+        if (mLoginTask != null)
             return;
-        }
 
         // Reset errors.
         mEmailView.setError(null);
@@ -191,59 +173,85 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         View focusView = null;
 
         // Check for a valid password, if the user entered one.
-        if (!TextUtils.isEmpty(password) && !isPasswordValid(password)) {
+        if (TextUtils.isEmpty(password))
+        {
+            mPasswordView.setError(getString(R.string.error_field_required));
+            focusView = mPasswordView;
+            cancel = true;
+        }
+        else if(!React.isPasswordValid(password))
+        {
             mPasswordView.setError(getString(R.string.error_invalid_password));
             focusView = mPasswordView;
             cancel = true;
         }
 
         // Check for a valid email address.
-        if (TextUtils.isEmpty(email)) {
+        if (TextUtils.isEmpty(email))
+        {
             mEmailView.setError(getString(R.string.error_field_required));
             focusView = mEmailView;
             cancel = true;
-        } else if (!isEmailValid(email)) {
+        } else if (!React.isEmailValid(email))
+        {
             mEmailView.setError(getString(R.string.error_invalid_email));
             focusView = mEmailView;
             cancel = true;
         }
 
-        if (cancel) {
+        if (cancel)
+        {
             // There was an error; don't attempt login and focus the first
             // form field with an error.
             focusView.requestFocus();
-        } else {
+        }
+        else
+        {
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
             showProgress(true);
             final String url = getString(R.string.domain)+"/student/signin";
-            mAuthTask = new UserLoginTask(email, password, url, "POST");
-            mAuthTask.execute((Void) null);
+            mLoginTask = new LoginTask(email, password, url);
+            mLoginTask.execute((Void) null);
         }
     }
 
-    private boolean attemptResetPwd()
+    private boolean attemptResetPwd(final String email)
     {
-        return true;
-    }
-
-    private boolean isEmailValid(String email) {
-        return (email.contains("@") && email.contains("."));
-    }
-
-    private boolean isPasswordValid(String password) {
-        return password.length() >= 6;
+        boolean rst = true;
+        // Check for a valid email address.
+        if (TextUtils.isEmpty(email))
+        {
+            mForgotPwdEmailInputView.setError(getString(R.string.error_field_required));
+            mForgotPwdEmailInputView.requestFocus();
+            rst = false;
+        } else if (!React.isEmailValid(email))
+        {
+            mForgotPwdEmailInputView.setError(getString(R.string.error_invalid_email));
+            mForgotPwdEmailInputView.requestFocus();
+            rst = false;
+        }
+        else
+        {
+            showProgress(true);
+            final String url = getString(R.string.domain) + "/student/password/email";
+            mResetPasswordTask = new ResetPasswordTask(email, url);
+            mResetPasswordTask.execute((Void) null);
+        }
+        return rst;
     }
 
     /**
      * Shows the progress UI and hides the login form.
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
-    private void showProgress(final boolean show) {
+    private void showProgress(final boolean show)
+    {
         // On Honeycomb MR2 we have the ViewPropertyAnimator APIs, which allow
         // for very easy animations. If available, use these APIs to fade-in
         // the progress spinner.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2)
+        {
             int shortAnimTime = getResources().getInteger(android.R.integer.config_shortAnimTime);
 
             mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
@@ -263,7 +271,9 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                     mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
                 }
             });
-        } else {
+        }
+        else
+        {
             // The ViewPropertyAnimator APIs are not available, so simply show
             // and hide the relevant UI components.
             mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
@@ -271,162 +281,291 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         }
     }
 
-    @Override
-    public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
-        return new CursorLoader(this,
-                // Retrieve data rows for the device user's 'profile' contact.
-                Uri.withAppendedPath(ContactsContract.Profile.CONTENT_URI,
-                        ContactsContract.Contacts.Data.CONTENT_DIRECTORY), ProfileQuery.PROJECTION,
-
-                // Select only email addresses.
-                ContactsContract.Contacts.Data.MIMETYPE +
-                        " = ?", new String[]{ContactsContract.CommonDataKinds.Email
-                .CONTENT_ITEM_TYPE},
-
-                // Show primary email addresses first. Note that there won't be
-                // a primary email address if the user hasn't specified one.
-                ContactsContract.Contacts.Data.IS_PRIMARY + " DESC");
-    }
-
-    @Override
-    public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
-        List<String> emails = new ArrayList<>();
-        cursor.moveToFirst();
-        while (!cursor.isAfterLast()) {
-            emails.add(cursor.getString(ProfileQuery.ADDRESS));
-            cursor.moveToNext();
-        }
-
-        addEmailsToAutoComplete(emails);
-    }
-
-    @Override
-    public void onLoaderReset(Loader<Cursor> cursorLoader) {
-
-    }
-
-    private void addEmailsToAutoComplete(List<String> emailAddressCollection) {
-        //Create adapter to tell the AutoCompleteTextView what to show in its dropdown list.
-        ArrayAdapter<String> adapter =
-                new ArrayAdapter<>(LoginActivity.this,
-                        android.R.layout.simple_dropdown_item_1line, emailAddressCollection);
-
-        mEmailView.setAdapter(adapter);
-    }
-
-
-    private interface ProfileQuery {
-        String[] PROJECTION = {
-                ContactsContract.CommonDataKinds.Email.ADDRESS,
-                ContactsContract.CommonDataKinds.Email.IS_PRIMARY,
-        };
-
-        int ADDRESS = 0;
-        int IS_PRIMARY = 1;
-    }
-
     /**
-     * Represents an asynchronous login/registration task used to authenticate
+     * Represents an asynchronous login task used to authenticate
      * the user.
      */
-    private class UserLoginTask extends AsyncTask<Void, Void, Integer> {
-
+    private class LoginTask extends AsyncTask<Void, Void, JSONObject>
+    {
         private final String mEmail;
         private final String mPassword;
         private final String mUrl;
-        private final String mMethod;
-        private final static String EOL = "\r\n";
+        private Integer mResponseCode = 0;
+        private boolean isTimeOut = false;
 
-        UserLoginTask(String email, String password, String url, String method) {
+        LoginTask(String email, String password, String url)
+        {
             mEmail = email;
             mPassword = password;
             mUrl = url;
-            mMethod = method;
         }
 
         @Override
-        protected Integer doInBackground(Void... params) {
-            // httpのコネクションを管理するクラス
+        protected JSONObject doInBackground(Void... params)
+        {
+            Log.d(TAG, "LoginTask Start");
             HttpURLConnection con = null;
-            URL url = null;
-            int status = 0;
-            JSONObject jsonObj = new JSONObject();
-            // InputStreamからbyteデータを取得するための変数
-            BufferedReader bufStr = null;
+            URL url;
 
-            try {
-                jsonObj.put("email", mEmail);
-                jsonObj.put("password", mPassword);
-                // URLの作成
+            JSONObject jsonOutput = null;
+            BufferedReader bufStr;
+
+            try
+            {
+                JSONObject jsonInput = new JSONObject();
+                jsonInput.put("email", mEmail);
+                jsonInput.put("password", mPassword);
+                
                 url = new URL(mUrl);
-                // 接続用HttpURLConnectionオブジェクト作成
-                con = (HttpURLConnection)url.openConnection();
-                // リクエストメソッドの設定
-                con.setRequestMethod(mMethod);
-                // リダイレクトを自動で許可しない設定
+                con = (HttpURLConnection) url.openConnection();
+                con.setRequestMethod("POST");
                 con.setInstanceFollowRedirects(false);
-                con.setRequestProperty("Accept-Language", "jp");
+                con.setRequestProperty("Accept-Language", "ja");
                 con.setRequestProperty("Accept", "application/json");
                 con.setRequestProperty("Content-Type", "application/json");
                 con.setUseCaches(false);
                 con.setAllowUserInteraction(false);
                 con.setConnectTimeout(getResources().getInteger(R.integer.delay_http_connect));
                 con.setReadTimeout(getResources().getInteger(R.integer.delay_http_read));
-
+                con.setDoInput(true);
                 con.setDoOutput(true);
+
                 OutputStream os = con.getOutputStream();
-                os.write(jsonObj.toString().getBytes());
+                os.write(jsonInput.toString().getBytes());
                 os.flush();
                 os.close();
 
-                status = con.getResponseCode();
-
-                bufStr = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                mResponseCode = con.getResponseCode();
+                if (HttpURLConnection.HTTP_OK == mResponseCode)
+                    bufStr = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                else
+                    bufStr = new BufferedReader(new InputStreamReader(con.getErrorStream()));
                 String body = bufStr.readLine();
-                if (HttpURLConnection.HTTP_OK == status)
-                {
-                    JSONObject tokenJson = new JSONObject(body);
-
-                    React mApp = (React) selfClass.getApplication();
-                    mApp.setApiToken(tokenJson.getString("api_token"));
-                    mApp.setEmail(mEmail);
-                    mApp.setPassword(mPassword);
-                }
-            } catch (MalformedURLException e) {
+                jsonOutput = new JSONObject(body);
+            } catch (java.net.UnknownHostException|java.net.SocketTimeoutException e) {
+                isTimeOut = true;
                 e.printStackTrace();
-            } catch (IOException e) {
+            } catch (JSONException|IOException e)
+            {
                 e.printStackTrace();
-            } catch (JSONException e) {
-                e.printStackTrace();
-            } finally {
-                if( con != null ){
-                    con.disconnect();
-                }
             }
-
-            return status;
+            finally
+            {
+                if( con != null )
+                    con.disconnect();
+            }
+            return jsonOutput;
         }
 
         @Override
-        protected void onPostExecute(final Integer status) {
-            mAuthTask = null;
+        protected void onPostExecute(final JSONObject result)
+        {
+            Log.d(TAG, "LoginTask Finish");
+
+            mLoginTask = null;
             showProgress(false);
 
-            if (HttpURLConnection.HTTP_OK == status) {
-                Intent intent = new Intent(selfClass, HomeActivity.class);
+            String errMsg = null;
+            if (HttpURLConnection.HTTP_OK == mResponseCode)
+            {
+                React mApp = (React) LoginActivity.this.getApplication();
+                try
+                {
+                    mApp.setApiToken(result.getString("api_token"));
+                }catch (JSONException e)
+                {
+                    e.printStackTrace();
+                }
+                Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
                 startActivity(intent);
                 finish();
-            } else {
-                mPasswordView.setError(getString(R.string.error_incorrect_password));
-                mPasswordView.requestFocus();
+                return;
+            }
+
+            if(isTimeOut)
+            {
+                errMsg = getString(R.string.error_timeout);
+            }
+            else if(result == null)
+            {
+                errMsg = getString(R.string.error_unknown);
+            }
+            else
+            {
+                try
+                {
+                    String type = result.getString("type");
+                    String message = result.getString("message");
+                    String[] info = type.split("\\.");
+                    switch(info[0])
+                    {
+                        case "password":
+                            mPasswordView.setError(message);
+                            mPasswordView.requestFocus();
+                            break;
+                        case "email":
+                        case "student":
+                            mEmailView.setError(message);
+                            mEmailView.requestFocus();
+                            break;
+                        default:
+                            errMsg = message;
+                            break;
+                    }
+                }
+                catch (JSONException e)
+                {
+                    errMsg = getString(R.string.error_unknown);
+                    e.printStackTrace();
+                }
+            }
+
+            if(!TextUtils.isEmpty(errMsg))
+            {
+                final LinearLayout layout = (LinearLayout) findViewById(R.id.root_layout);
+                Snackbar.make(layout, errMsg, Snackbar.LENGTH_LONG)
+                        .setAction(getString(R.string.text_resend), new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                attemptLogin();
+                            }
+                        })
+                        .show();
             }
         }
 
         @Override
-        protected void onCancelled() {
-            mAuthTask = null;
+        protected void onCancelled()
+        {
+            mLoginTask = null;
+            showProgress(false);
+        }
+    }
+
+    private class ResetPasswordTask extends AsyncTask<Void, Void, JSONObject>
+    {
+        private final String mEmail;
+        private final String mUrl;
+        private Integer mResponseCode = 0;
+        private  boolean isTimeOut = false;
+
+        ResetPasswordTask(String email, String url)
+        {
+            mEmail = email;
+            mUrl = url;
+        }
+
+        @Override
+        protected JSONObject doInBackground(Void... params)
+        {
+            Log.d(TAG, "ResetPasswordTask Start");
+            HttpURLConnection con = null;
+            URL url;
+
+            JSONObject jsonOutput = null;
+            BufferedReader bufStr;
+
+            try
+            {
+                JSONObject jsonInput = new JSONObject();
+                jsonInput.put("email", mEmail);
+
+                url = new URL(mUrl);
+                con = (HttpURLConnection) url.openConnection();
+                con.setRequestMethod("POST");
+                con.setInstanceFollowRedirects(false);
+                con.setRequestProperty("Accept-Language", "ja");
+                con.setRequestProperty("Accept", "application/json");
+                con.setRequestProperty("Content-Type", "application/json");
+                con.setUseCaches(false);
+                con.setAllowUserInteraction(false);
+                con.setConnectTimeout(getResources().getInteger(R.integer.delay_http_connect));
+                con.setReadTimeout(getResources().getInteger(R.integer.delay_http_read));
+                con.setDoInput(true);
+                con.setDoOutput(true);
+
+                OutputStream os = con.getOutputStream();
+                os.write(jsonInput.toString().getBytes());
+                os.flush();
+                os.close();
+
+                mResponseCode = con.getResponseCode();
+
+                if (HttpURLConnection.HTTP_OK == mResponseCode)
+                    bufStr = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                else
+                    bufStr = new BufferedReader(new InputStreamReader(con.getErrorStream()));
+                String body = bufStr.readLine();
+                jsonOutput = new JSONObject(body);
+            }
+            catch (java.net.UnknownHostException|java.net.SocketTimeoutException e) {
+                isTimeOut = true;
+                e.printStackTrace();
+            }
+            catch (JSONException|IOException e)
+            {
+                e.printStackTrace();
+            }
+            finally
+            {
+                if( con != null )
+                    con.disconnect();
+            }
+            return jsonOutput;
+        }
+
+        @Override
+        protected void onPostExecute(final JSONObject result)
+        {
+            Log.d(TAG, "ResetPasswordTask Finish");
+
+            mResetPasswordTask = null;
+            showProgress(false);
+
+            String errMsg = null;
+
+            if (HttpURLConnection.HTTP_OK == mResponseCode)
+            {
+                final LinearLayout layout = (LinearLayout) findViewById(R.id.root_layout);
+                Snackbar.make(layout, R.string.dialog_password_reset, Snackbar.LENGTH_LONG).show();
+                return;
+            }
+            if(isTimeOut)
+            {
+                errMsg = getString(R.string.error_timeout);
+            }
+            else if(result == null)
+            {
+                errMsg = getString(R.string.error_unknown);
+            }
+            else
+            {
+                try
+                {
+                    String message = result.getString("message");
+                    mForgetPwdDialog.show();
+                    mForgotPwdEmailInputView.setError(message);
+                    mForgotPwdEmailInputView.requestFocus();
+                }
+                catch (JSONException e)
+                {
+                    errMsg = getString(R.string.error_unknown);
+                }
+            }
+
+            if(!TextUtils.isEmpty(errMsg))
+            {
+                final LinearLayout layout = (LinearLayout) findViewById(R.id.root_layout);
+                Snackbar.make(layout, errMsg, Snackbar.LENGTH_LONG)
+                        .show();
+            }
+        }
+
+        @Override
+        protected void onCancelled()
+        {
+            mResetPasswordTask = null;
             showProgress(false);
         }
     }
 }
-

@@ -14,8 +14,8 @@
     <integer name="type_question">1</integer>
     <integer name="type_feeling">2</integer>
     <integer name="type_others">3</integer>
-    <integer name="delay_http_connect">3000</integer>
-    <integer name="delay_http_read">3000</integer>
+    <integer name="delay_http_connect">5000</integer>
+    <integer name="delay_http_read">5000</integer>
     <integer name="delay_gps">10</integer>
     <integer name="timer_welcome">1000</integer>
     <integer name="timer_require_status">10000</integer>
