@@ -9,8 +9,9 @@
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
-    tools:context="com.optimind_react.reactadroid.LoginActivity"
-    android:background="@color/colorBack">
+    android:focusableInTouchMode="true"
+    android:background="@color/colorBack"
+    tools:context="com.optimind_react.reactadroid.LoginActivity">
 
     <!-- Login progress -->
     <ProgressBar
@@ -88,11 +89,9 @@
                 android:id="@+id/forget_pwd_text"
                 android:clickable="true"
                 android:textColor="@color/clickable_text"
-                android:textSize="@dimen/abc_text_size_large_material" />
+                android:textSize="@dimen/abc_text_size_large_material"
+                android:layout_margin="5dp" />
 
-            <Space
-                android:layout_width="10dp"
-                android:layout_height="10dp" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -100,7 +99,8 @@
                 android:id="@+id/register_text"
                 android:clickable="true"
                 android:textColor="@color/clickable_text"
-                android:textSize="@dimen/abc_text_size_large_material" />
+                android:textSize="@dimen/abc_text_size_large_material"
+                android:layout_margin="5dp" />
 
         </LinearLayout>
     </ScrollView>

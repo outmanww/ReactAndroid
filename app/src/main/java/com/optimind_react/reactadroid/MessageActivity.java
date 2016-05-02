@@ -4,11 +4,14 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Resources;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.PowerManager;
 import android.support.design.widget.TabLayout;
 import android.support.design.widget.Snackbar;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -22,6 +25,8 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
@@ -76,10 +81,26 @@ public class MessageActivity extends AppCompatActivity
          */
         // Set up the ViewPager with the sections adapter.
         ViewPager viewPager = (ViewPager) findViewById(R.id.container);
-        viewPager.setAdapter(mSectionsPagerAdapter);
+        if(viewPager != null)
+            viewPager.setAdapter(mSectionsPagerAdapter);
 
         TabLayout tabLayout = (TabLayout) findViewById(R.id.tabs);
-        tabLayout.setupWithViewPager(viewPager);
+        if(tabLayout != null)
+            tabLayout.setupWithViewPager(viewPager);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+        {
+            Window window = getWindow();
+
+            // clear FLAG_TRANSLUCENT_STATUS flag:
+            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+
+            // add FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS flag to the window
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+
+            // finally change the color
+            window.setStatusBarColor(ContextCompat.getColor(this, R.color.colorBack));
+        }
     }
 
     @Override
@@ -281,8 +302,8 @@ public class MessageActivity extends AppCompatActivity
                 }
                 if(!TextUtils.isEmpty(errMsg)) {
                     final ViewPager layout = (ViewPager) findViewById(R.id.container);
-                    Snackbar.make(layout, errMsg, Snackbar.LENGTH_LONG)
-                            .show();
+                    if(layout != null)
+                        Snackbar.make(layout, errMsg, Snackbar.LENGTH_LONG).show();
                 }
             }
 
@@ -379,6 +400,9 @@ public class MessageActivity extends AppCompatActivity
             View rootView = inflater.inflate(R.layout.fragment_message, container, false);
             mMessage = (EditText) rootView.findViewById(R.id.message);
             mMessage.setHint(getArguments().getString(ARG_HINT));
+            Integer color = Color.parseColor("#FFFFFFFF");
+            mMessage.getBackground().setColorFilter(color, PorterDuff.Mode.SRC_ATOP);
+
             mName = (EditText) rootView.findViewById(R.id.name);
             mName.setVisibility(View.INVISIBLE);
             React app = (React) getActivity().getApplication();

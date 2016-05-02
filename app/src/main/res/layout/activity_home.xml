@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/root_layout"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:id="@+id/root_layout"
     tools:context=".HomeActivity"
+    android:focusableInTouchMode="true"
     android:background="@color/colorBack">
 
     <TextView
@@ -50,7 +51,7 @@
             android:layout_margin="50dp"
             android:text="@string/text_lecture"
             android:textColor="@android:color/white"
-            android:textSize="50dp" />
+            android:textSize="40dp" />
 
     </LinearLayout>
 

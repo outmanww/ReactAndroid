@@ -20,6 +20,7 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -64,27 +65,46 @@ public class ReactionActivity extends AppCompatActivity implements View.OnClickL
         Intent intent = getIntent();
         mRoomKey = intent.getStringExtra("ROOM_KEY");//設定したkeyで取り出す
 
-        ((TextView)findViewById(R.id.TeacherName)).setText(intent.getStringExtra("TEACHER_NAME"));
-        ((TextView)findViewById(R.id.LectureName)).setText(intent.getStringExtra("LECTURE_NAME"));
-        ((TextView)findViewById(R.id.TimeSlot)).setText(intent.getStringExtra("TIME_SLOT"));
+        TextView teacherName = (TextView)findViewById(R.id.TeacherName);
+        if(teacherName != null)
+            teacherName.setText(intent.getStringExtra("TEACHER_NAME"));
+        TextView lectureName = (TextView)findViewById(R.id.LectureName);
+        if(lectureName != null)
+            lectureName.setText(intent.getStringExtra("LECTURE_NAME"));
+        TextView timeSlot = (TextView)findViewById(R.id.TimeSlot);
+        if(timeSlot != null)
+            timeSlot.setText(intent.getStringExtra("TIME_SLOT"));
 
         mRes = getResources();
 
         mClickNum = (TextView)findViewById(R.id.ClickNum);
-        mClickNum.setText("0");
+        if(mClickNum != null)
+            mClickNum.setText("0");
         mTimePast = (TextView)findViewById(R.id.TimePast);
-        mTimePast.setText("0");
+        if(mTimePast != null)
+            mTimePast.setText("0");
         mNumConfused = (TextView)findViewById(R.id.NumConfused);
-        mNumConfused.setText("0");
+        if(mNumConfused != null)
+            mNumConfused.setText("0");
         mNumInteresting = (TextView)findViewById(R.id.NumInteresting);
-        mNumInteresting.setText("0");
+        if(mNumInteresting != null)
+            mNumInteresting.setText("0");
         mNumBoring = (TextView)findViewById(R.id.NumBoring);
-        mNumBoring.setText("0");
+        if(mNumBoring != null)
+            mNumBoring.setText("0");
 
-        findViewById(R.id.ConfusedButton).setOnClickListener(this);
-        findViewById(R.id.InterestingButton).setOnClickListener(this);
-        findViewById(R.id.BoringButton).setOnClickListener(this);
-        findViewById(R.id.MessageButton).setOnClickListener(this);
+        Button confusedButton = (Button)findViewById(R.id.ConfusedButton);
+        if(confusedButton != null)
+            confusedButton.setOnClickListener(this);
+        Button interestingButton = (Button)findViewById(R.id.InterestingButton);
+        if(interestingButton != null)
+            interestingButton.setOnClickListener(this);
+        Button boringButton = (Button)findViewById(R.id.BoringButton);
+        if(boringButton != null)
+            boringButton.setOnClickListener(this);
+        Button messageButton = (Button)findViewById(R.id.MessageButton);
+        if(messageButton != null)
+            messageButton.setOnClickListener(this);
 
         React mApp = (React) this.getApplication();
         String apiToken = mApp.getApiToken();
@@ -398,8 +418,8 @@ public class ReactionActivity extends AppCompatActivity implements View.OnClickL
 
             if(!TextUtils.isEmpty(errMsg)) {
                 final LinearLayout layout = (LinearLayout) findViewById(R.id.root_layout);
-                Snackbar.make(layout, errMsg, Snackbar.LENGTH_LONG)
-                        .show();
+                if(layout != null)
+                    Snackbar.make(layout, errMsg, Snackbar.LENGTH_LONG).show();
             }
         }
 

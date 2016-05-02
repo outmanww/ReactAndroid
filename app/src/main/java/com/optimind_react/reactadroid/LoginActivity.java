@@ -3,6 +3,7 @@ package com.optimind_react.reactadroid;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
@@ -15,9 +16,11 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -54,6 +57,9 @@ public class LoginActivity extends AppCompatActivity
     private View mLoginFormView;
     private AlertDialog mForgetPwdDialog;
     private EditText mForgotPwdEmailInputView;
+    private LinearLayout mRootLayout;
+
+    private InputMethodManager mInputMethodManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -76,7 +82,8 @@ public class LoginActivity extends AppCompatActivity
         });
 
         Button mEmailSignInButton = (Button) findViewById(R.id.email_sign_in_button);
-        mEmailSignInButton.setOnClickListener(new OnClickListener() {
+        if(mEmailSignInButton != null)
+            mEmailSignInButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
                 attemptLogin();
@@ -84,13 +91,15 @@ public class LoginActivity extends AppCompatActivity
         });
 
         TextView mRegisterText = (TextView) findViewById(R.id.register_text);
-        mRegisterText.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
-                startActivity(intent);
-            }
-        });
+        if(mRegisterText != null)
+            mRegisterText.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    Intent intent = new Intent(LoginActivity.this, LicenseAgreementActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+                    startActivity(intent);
+                }
+            });
 
         mForgotPwdEmailInputView = new EditText(LoginActivity.this);
         mForgotPwdEmailInputView.setText(mEmailView.getText().toString());
@@ -123,36 +132,49 @@ public class LoginActivity extends AppCompatActivity
             }});
 
         TextView mForgetPwdText = (TextView) findViewById(R.id.forget_pwd_text);
-        mForgetPwdText.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                mForgetPwdDialog.show();
+        if(mForgetPwdText != null)
+            mForgetPwdText.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    mForgetPwdDialog.show();
 
-                mForgetPwdDialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener()
-                {
-                    @Override
-                    public void onClick(View dialog)
+                    mForgetPwdDialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener()
                     {
-                        boolean rst = attemptResetPwd(mForgotPwdEmailInputView.getText().toString());
-                        if(rst)
-                            mForgetPwdDialog.dismiss();
-                    }});
+                        @Override
+                        public void onClick(View dialog)
+                        {
+                            boolean rst = attemptResetPwd(mForgotPwdEmailInputView.getText().toString());
+                            if(rst)
+                                mForgetPwdDialog.dismiss();
+                        }});
 
-                mForgotPwdEmailInputView.requestFocus();
-                mForgotPwdEmailInputView.setText(mEmailView.getText().toString());
-            }
-        });
+                    mForgotPwdEmailInputView.requestFocus();
+                    mForgotPwdEmailInputView.setText(mEmailView.getText().toString());
+                }
+            });
 
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
+        mRootLayout = (LinearLayout) findViewById(R.id.root_layout);
 
         React app = (React) this.getApplication();
         mEmailView.setText(app.getEmail());
+
+        mInputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        mEmailView.requestFocus();
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event)
+    {
+        mInputMethodManager.hideSoftInputFromWindow(mRootLayout.getWindowToken(),InputMethodManager.HIDE_NOT_ALWAYS);
+        mRootLayout.requestFocus();
+        return true;
     }
 
 
     /**
-     * Attempts to register the account specified by the login form.
+     * Attempts to login the account specified by the login form.
      * If there are form errors (invalid email, missing fields, etc.), the
      * errors are presented and no actual login attempt is made.
      */
@@ -247,6 +269,12 @@ public class LoginActivity extends AppCompatActivity
     @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
     private void showProgress(final boolean show)
     {
+        if(show)
+        {
+            mInputMethodManager.hideSoftInputFromWindow(mRootLayout.getWindowToken(),
+                    InputMethodManager.HIDE_NOT_ALWAYS);
+            mRootLayout.requestFocus();
+        }
         // On Honeycomb MR2 we have the ViewPropertyAnimator APIs, which allow
         // for very easy animations. If available, use these APIs to fade-in
         // the progress spinner.
@@ -422,15 +450,15 @@ public class LoginActivity extends AppCompatActivity
 
             if(!TextUtils.isEmpty(errMsg))
             {
-                final LinearLayout layout = (LinearLayout) findViewById(R.id.root_layout);
-                Snackbar.make(layout, errMsg, Snackbar.LENGTH_LONG)
-                        .setAction(getString(R.string.text_resend), new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                attemptLogin();
-                            }
-                        })
-                        .show();
+                if(mRootLayout != null)
+                    Snackbar.make(mRootLayout, errMsg, Snackbar.LENGTH_LONG)
+                            .setAction(getString(R.string.text_resend), new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    attemptLogin();
+                                }
+                            })
+                            .show();
             }
         }
 
@@ -526,8 +554,8 @@ public class LoginActivity extends AppCompatActivity
 
             if (HttpURLConnection.HTTP_OK == mResponseCode)
             {
-                final LinearLayout layout = (LinearLayout) findViewById(R.id.root_layout);
-                Snackbar.make(layout, R.string.dialog_password_reset, Snackbar.LENGTH_LONG).show();
+                if(mRootLayout != null)
+                    Snackbar.make(mRootLayout, R.string.dialog_password_reset, Snackbar.LENGTH_LONG).show();
                 return;
             }
             if(isTimeOut)
@@ -555,8 +583,8 @@ public class LoginActivity extends AppCompatActivity
 
             if(!TextUtils.isEmpty(errMsg))
             {
-                final LinearLayout layout = (LinearLayout) findViewById(R.id.root_layout);
-                Snackbar.make(layout, errMsg, Snackbar.LENGTH_LONG)
+                if(mRootLayout != null)
+                    Snackbar.make(mRootLayout, errMsg, Snackbar.LENGTH_LONG)
                         .show();
             }
         }

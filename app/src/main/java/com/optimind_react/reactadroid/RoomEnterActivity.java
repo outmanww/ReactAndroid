@@ -1,14 +1,16 @@
 package com.optimind_react.reactadroid;
 
+import android.Manifest;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.res.Resources;
+import android.location.Criteria;
 import android.location.Location;
-import android.location.LocationListener;
 import android.location.LocationManager;
 import android.provider.Settings;
 import android.support.design.widget.Snackbar;
@@ -23,13 +25,21 @@ import android.text.method.DigitsKeyListener;
 import android.text.method.KeyListener;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.LocationListener;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -42,12 +52,16 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Calendar;
 
-public class RoomEnterActivity extends AppCompatActivity
+public class RoomEnterActivity extends AppCompatActivity implements
+        GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, com.google.android.gms.location.LocationListener
 {
     // tag for debug
     private final static String TAG = RoomEnterActivity.class.getSimpleName();
-    
-    private LocationManager mLocationManager;
+
+//    private LocationManager mLocationManager;
+    GoogleApiClient mGoogleApiClient;
+    Location mLocation;
+    private InputMethodManager mInputMethodManager;
 
     private RoomConfirmTask mRoomConfirmTask = null;
     private RoomInTask mRoomInTask = null;
@@ -56,6 +70,8 @@ public class RoomEnterActivity extends AppCompatActivity
     private EditText mRoomKeyView;
     private View mProgressView;
     private View mKeyAreaView;
+    private LinearLayout mRootLayout;
+
 
     // http result
     private String mTeacherName;
@@ -64,64 +80,47 @@ public class RoomEnterActivity extends AppCompatActivity
     private String mRoomKey;
     private String mApiToken;
 
-    private final LocationListener gpsLocationListener = new LocationListener()
+    private void registerLocationUpdates()
     {
-        @Override
-        public void onStatusChanged(String provider, int status, Bundle extras) {}
-
-        @Override
-        public void onProviderEnabled(String provider) {}
-
-        @Override
-        public void onProviderDisabled(String provider) {}
-
-        @Override
-        public void onLocationChanged(Location location)
+        // if the last location is got in one minute
+        if(mLocation != null && mLocation.getTime() > Calendar.getInstance().getTimeInMillis() - 60 * 1000)
         {
-            if(location == null)
-                return;
-
-            try
-            {
-                mLocationManager.removeUpdates(networkLocationListener);
-                mLocationManager.removeUpdates(gpsLocationListener);
-                startRoomInTask(location.getLatitude(), location.getLongitude());
-            }
-            catch (SecurityException e)
-            {
-                e.printStackTrace();
-            }
+            startRoomInTask(mLocation);
+            return;
         }
-    };
-    private final LocationListener networkLocationListener = new LocationListener()
-    {
-        @Override
-        public void onStatusChanged(String provider, int status, Bundle extras){}
 
-        @Override
-        public void onProviderEnabled(String provider) {}
+        int p = getPackageManager().checkPermission(Manifest.permission.ACCESS_COARSE_LOCATION, getPackageName());
+        if(p == PackageManager.PERMISSION_DENIED) {
 
-        @Override
-        public void onProviderDisabled(String provider) {}
+            AlertDialog.Builder confirmAlert = new AlertDialog.Builder(RoomEnterActivity.this);
+            confirmAlert.setTitle(getString(R.string.text_confirm));
+            confirmAlert.setMessage(getString(R.string.error_gps_needed));
 
-        @Override
-        public void onLocationChanged(Location location)
-        {
-            if(location == null)
-                return;
-            try
-            {
-                mLocationManager.removeUpdates(networkLocationListener);
-                mLocationManager.removeUpdates(gpsLocationListener);
-                startRoomInTask(location.getLatitude(), location.getLongitude());
-            }
-            catch (SecurityException e)
-            {
-                e.printStackTrace();
-            }
+            confirmAlert.setPositiveButton(getString(R.string.text_setting), new DialogInterface.OnClickListener(){
+                public void onClick(DialogInterface dialog, int which) {
+                    enableLocationSettings();
+                }
+            });
+
+            confirmAlert.setNegativeButton(getString(R.string.action_cancel), new DialogInterface.OnClickListener(){
+                public void onClick(DialogInterface dialog, int which) {
+                }});
+            return;
         }
-    };
 
+        // if the client is not connected, get the connection
+        if(!mGoogleApiClient.isConnected())
+            mGoogleApiClient.connect();
+        LocationRequest locationRequest = LocationRequest.create();
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        locationRequest.setInterval(5000);
+        locationRequest.setFastestInterval(1000);
+        try {
+            LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, locationRequest, this);
+        } catch (SecurityException e) {
+            e.printStackTrace();
+        }
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -145,7 +144,8 @@ public class RoomEnterActivity extends AppCompatActivity
         });
 
         Button mEmailSignInButton = (Button) findViewById(R.id.room_key_button);
-        mEmailSignInButton.setOnClickListener(new OnClickListener() {
+        if(mEmailSignInButton != null)
+            mEmailSignInButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
                 attemptRoomIn();
@@ -154,11 +154,96 @@ public class RoomEnterActivity extends AppCompatActivity
 
         mProgressView = findViewById(R.id.roomin_progress);
         mKeyAreaView = findViewById(R.id. key_input_area);
+        mRootLayout = (LinearLayout) findViewById(R.id.root_layout);
 
         React mApp = (React) this.getApplication();
         mApiToken = mApp.getApiToken();
 
-        mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+       // mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        if (mGoogleApiClient == null) {
+            mGoogleApiClient = new GoogleApiClient.Builder(this)
+                    .addConnectionCallbacks(this)
+                    .addOnConnectionFailedListener(this)
+                    .addApi(LocationServices.API)
+                    .build();
+        }
+
+
+        mInputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        mRoomKeyView.requestFocus();
+        mInputMethodManager.showSoftInput(mRoomKeyView, InputMethodManager.SHOW_IMPLICIT);
+    }
+    @Override
+    protected void onStart()
+    {
+        if(!mGoogleApiClient.isConnected())
+            mGoogleApiClient.connect();
+        super.onStart();
+    }
+    @Override
+    protected void onStop()
+    {
+        if(mGoogleApiClient.isConnected())
+            mGoogleApiClient.disconnect();
+        super.onStop();
+    }
+    @Override
+    public void onConnected(Bundle connectionHint) {
+        int p = getPackageManager().checkPermission(Manifest.permission.ACCESS_COARSE_LOCATION, getPackageName());
+        if(p == PackageManager.PERMISSION_DENIED) {
+
+            AlertDialog.Builder confirmAlert = new AlertDialog.Builder(RoomEnterActivity.this);
+            confirmAlert.setTitle(getString(R.string.text_confirm));
+            confirmAlert.setMessage(getString(R.string.error_gps_needed));
+
+            confirmAlert.setPositiveButton(getString(R.string.text_setting), new DialogInterface.OnClickListener(){
+                public void onClick(DialogInterface dialog, int which) {
+                    enableLocationSettings();
+                }
+            });
+
+            confirmAlert.setNegativeButton(getString(R.string.action_cancel), new DialogInterface.OnClickListener(){
+                public void onClick(DialogInterface dialog, int which) {
+                }});
+            return;
+        }
+
+        Location lastLocation = LocationServices.FusedLocationApi.getLastLocation(
+                mGoogleApiClient);
+        if (lastLocation != null) {
+            mLocation = lastLocation;
+        }
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+        // When GoogleApiClient is interrupted
+        // i can be GoogleApiClient.ConnectionCallbacks.CAUSE_NETWORK_LOST
+        //     or GoogleApiClient.ConnectionCallbacks.CAUSE_SERVICE_DISCONNECTED
+    }
+
+    @Override
+    public void onConnectionFailed(ConnectionResult result) {
+        // When GoogleApiClient failed
+        // to get detailed errors
+        // result.getErrorCode();
+    }
+
+    @Override
+    public void onLocationChanged(Location location)
+    {
+        mLocation = location;
+        LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
+        startRoomInTask(mLocation);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event)
+    {
+        mInputMethodManager.hideSoftInputFromWindow(mRootLayout.getWindowToken(),
+                InputMethodManager.HIDE_NOT_ALWAYS);
+        mRootLayout.requestFocus();
+        return true;
     }
 
     /**
@@ -218,7 +303,15 @@ public class RoomEnterActivity extends AppCompatActivity
      * Shows the progress UI and hides the roomin form.
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
-    private void showProgress(final boolean show) {
+    private void showProgress(final boolean show)
+    {
+        if(show)
+        {
+            mInputMethodManager.hideSoftInputFromWindow(mRootLayout.getWindowToken(),
+                    InputMethodManager.HIDE_NOT_ALWAYS);
+            mRootLayout.requestFocus();
+        }
+
         // On Honeycomb MR2 we have the ViewPropertyAnimator APIs, which allow
         // for very easy animations. If available, use these APIs to fade-in
         // the progress spinner.
@@ -346,37 +439,8 @@ public class RoomEnterActivity extends AppCompatActivity
 
                 confirmAlert.setPositiveButton(getString(R.string.action_room_in), new DialogInterface.OnClickListener(){
                     public void onClick(DialogInterface dialog, int which) {
-                        final boolean gpsEnabled = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-                        final boolean networkEnabled = mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-                        if (!gpsEnabled && !networkEnabled)
-                        {
-                            // Enable local setting for GPS
-                            enableLocationSettings();
-                            return;
-                        }
-
-                        try
-                        {
-                            Location location = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-
-                            // check if the location information is new in 1 minutes
-                            if (location != null && location.getTime() > Calendar.getInstance().getTimeInMillis() - 60 * 1000)
-                            {
-                                startRoomInTask(location.getLatitude(), location.getLongitude());
-                            }
-                            else
-                            {
-                                if(gpsEnabled)
-                                    mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, gpsLocationListener);
-                                else
-                                    mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, networkLocationListener);
-                                showProgress(true);
-                            }
-                        }
-                        catch (SecurityException e)
-                        {
-                            e.printStackTrace();
-                        }
+                    showProgress(true);
+                    registerLocationUpdates();
                     }
                 });
 
@@ -421,14 +485,15 @@ public class RoomEnterActivity extends AppCompatActivity
             }
 
             final LinearLayout layout = (LinearLayout) findViewById(R.id.root_layout);
-            Snackbar.make(layout, errMsg, Snackbar.LENGTH_LONG)
-                    .setAction(getString(R.string.text_resend), new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            attemptRoomIn();
-                        }
-                    })
-                    .show();
+            if(layout != null)
+                Snackbar.make(layout, errMsg, Snackbar.LENGTH_LONG)
+                .setAction(getString(R.string.text_resend), new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        attemptRoomIn();
+                    }
+                })
+                .show();
         }
 
         @Override
@@ -439,10 +504,11 @@ public class RoomEnterActivity extends AppCompatActivity
         }
     }
 
-    private void startRoomInTask(double geoLat, double geoLong)
+    private void startRoomInTask(Location location)
     {
         final String roomInUrl = getString(R.string.domain) + "/student/rooms/" + mRoomKey + "?api_token=" + mApiToken;
-        mRoomInTask = new RoomInTask(geoLat, geoLong, roomInUrl);
+        Log.d(TAG,"Room In Location: "+String.valueOf(location.getLatitude())+" "+String.valueOf(location.getLongitude()));
+        mRoomInTask = new RoomInTask(location.getLatitude(), location.getLongitude(), roomInUrl);
         mRoomInTask.execute((Void) null);
     }
 
@@ -527,7 +593,6 @@ public class RoomEnterActivity extends AppCompatActivity
         {
             Log.d(TAG, "RoomInTask Finish");
             mRoomInTask = null;
-            showProgress(false);
 
             String errMsg = null;
 
@@ -541,6 +606,8 @@ public class RoomEnterActivity extends AppCompatActivity
                 startActivity(intent);
                 return;
             }
+
+            showProgress(false);
 
             if(isTimeOut)
             {
@@ -577,8 +644,8 @@ public class RoomEnterActivity extends AppCompatActivity
             if(!TextUtils.isEmpty(errMsg))
             {
                 final LinearLayout layout = (LinearLayout) findViewById(R.id.root_layout);
-                Snackbar.make(layout, errMsg, Snackbar.LENGTH_LONG)
-                        .show();
+                if(layout != null)
+                    Snackbar.make(layout, errMsg, Snackbar.LENGTH_LONG).show();
             }
         }
 

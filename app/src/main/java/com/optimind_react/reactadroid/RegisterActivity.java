@@ -3,6 +3,7 @@ package com.optimind_react.reactadroid;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
+import android.content.Context;
 import android.content.Intent;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
@@ -13,9 +14,11 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -52,6 +55,9 @@ public class RegisterActivity extends AppCompatActivity
     private EditText mPasswordConfirmView;
     private View mProgressView;
     private View mRegisterFormView;
+    private LinearLayout mRootLayout;
+
+    private InputMethodManager mInputMethodManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,7 +82,8 @@ public class RegisterActivity extends AppCompatActivity
         });
 
         Button mEmailSignUpButton = (Button) findViewById(R.id.user_sign_up_button);
-        mEmailSignUpButton.setOnClickListener(new OnClickListener() {
+        if(mEmailSignUpButton != null)
+            mEmailSignUpButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
                 attemptRegister();
@@ -85,6 +92,19 @@ public class RegisterActivity extends AppCompatActivity
 
         mRegisterFormView = findViewById(R.id.register_form);
         mProgressView = findViewById(R.id.register_progress);
+        mRootLayout = (LinearLayout) findViewById(R.id.root_layout);
+
+        mInputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        mFamilyNameView.requestFocus();
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event)
+    {
+        mInputMethodManager.hideSoftInputFromWindow(mRootLayout.getWindowToken(),
+                InputMethodManager.HIDE_NOT_ALWAYS);
+        mRootLayout.requestFocus();
+        return true;
     }
 
     /**
@@ -194,6 +214,12 @@ public class RegisterActivity extends AppCompatActivity
     @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
     private void showProgress(final boolean show)
     {
+        if(show)
+        {
+            mInputMethodManager.hideSoftInputFromWindow(mRootLayout.getWindowToken(),
+                    InputMethodManager.HIDE_NOT_ALWAYS);
+            mRootLayout.requestFocus();
+        }
         // On Honeycomb MR2 we have the ViewPropertyAnimator APIs, which allow
         // for very easy animations. If available, use these APIs to fade-in
         // the progress spinner.
@@ -388,14 +414,15 @@ public class RegisterActivity extends AppCompatActivity
             if(!TextUtils.isEmpty(errMsg))
             {
                 final LinearLayout layout = (LinearLayout) findViewById(R.id.root_layout);
-                Snackbar.make(layout, errMsg, Snackbar.LENGTH_LONG)
-                        .setAction(getString(R.string.text_resend), new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                attemptRegister();
-                            }
-                        })
-                        .show();
+                if(layout != null)
+                    Snackbar.make(layout, errMsg, Snackbar.LENGTH_LONG)
+                            .setAction(getString(R.string.text_resend), new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    attemptRegister();
+                                }
+                            })
+                            .show();
             }
         }
 
